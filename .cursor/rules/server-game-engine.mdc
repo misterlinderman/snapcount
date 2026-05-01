@@ -1,0 +1,60 @@
+---
+description: Server-side game engine — purity and authority rules
+globs: server/src/game/engine/**/*.ts
+alwaysApply: true
+---
+
+# Server game engine
+
+This is the authoritative game engine. Every change here changes how games actually resolve for every user.
+
+## Purity
+
+- Functions are pure. Same inputs → same outputs. No exceptions.
+- No `Date.now()`, no `Math.random()`, no `console.log` in production paths.
+- Randomness comes through an injected RNG: `(state, action, content, rng) => ...`. Tests pass a seeded RNG.
+- No DB calls. The route handler reads state from Mongo, calls the engine, writes the result back.
+- No imports from `client/`, `models/`, or `routes/`. The engine depends only on `game/types` and stdlib.
+
+## Shape
+
+```typescript
+type Reducer = (
+  state: GameState,
+  action: GameAction,
+  content: GameContent,
+  rng: RNG
+) => { state: GameState; events: GameEvent[] };
+```
+
+The reducer returns a new state and an array of structured events. Events drive client-side animation and toasts; they are also persisted as a play log.
+
+## Game math — match the spec
+
+- `effective_power = (base_power + card_bonuses + power_boost) × playmaker_mult`
+- `final_power = effective_power + matchup_modifier`
+- Yards on offense win: `max(1, round(margin × 1.2 + 2))`
+- Yards on defense win: `−max(1, round(|margin|))`
+- Tie: `1` yard
+- Field direction: Red drives toward 100 (`dir = +1`), Blue toward 0 (`dir = −1`). Yards are stored offense-relative; `dir` is applied only when updating field position.
+- Touchdown: ball ≥ 95 (Red) or ≤ 5 (Blue). Score 7. Possession flips on the kickoff.
+- 4th-down failure: turnover on downs. Possession flips at the spot.
+- Interception: possession flips, +15 yards in the new offense's direction.
+- Quarter: 8 plays. Game: 4 quarters.
+
+If you find yourself adjusting these constants, the change belongs in `docs/game/GAME_DESIGN.md` first and in the seed/admin layer second — not as a magic number in the engine.
+
+## Tendency penalty
+
+Same card type three plays in a row → CPU reads it, defense gets a `−5` yard penalty applied to the offense. This is checked in `resolveSnap`.
+
+## Tests
+
+Every reducer has a colocated `.test.ts`. Cover:
+- Happy path resolution
+- Matchup modifier application
+- Tendency penalty triggers exactly on the third repeat, not before
+- Touchdown threshold and possession flip
+- Interception 15-yard return in the correct direction
+- 4th-down turnover at the correct spot
+- Quarter rollover at exactly 8 plays

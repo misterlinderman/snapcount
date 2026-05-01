@@ -1,0 +1,52 @@
+---
+description: Mongoose models — schemas, indexes, denormalization rules
+globs: server/src/models/**/*.ts
+alwaysApply: true
+---
+
+# Mongoose models
+
+The full ER diagram lives in `docs/architecture/DATA_MODEL.md`. The rules below are the conventions every model in this repo follows.
+
+## Conventions
+
+- Each model in its own file, exported through `server/src/models/index.ts`.
+- `interface I<Name> extends Document` defines the shape; `Schema<I<Name>>` enforces it.
+- `{ timestamps: true }` on every schema unless there's a clear reason not to.
+- Index every field used in `find`, `sort`, or population. Indexes go in the schema definition, not as a separate `ensureIndex` call.
+
+## User identity
+
+- The `user` field on every owned document stores the Auth0 `sub` claim (a string like `auth0|xxx`), not a Mongo ObjectId. Index it.
+- The `User` model itself uses `_id: String` set to the Auth0 sub, so cross-references stay strings end-to-end.
+
+## Game content vs. game state
+
+Two different lifetimes:
+
+- **Content** (`Card`, `Playmaker`, `MatchupMatrix`, `Upgrade`): edited by admins, read by the engine. Stable across sessions.
+- **State** (`Deck`, `GameSession`): owned by users, mutated as they play.
+
+Never mix them. A `GameSession` references `Card._id` strings; it doesn't embed the card definition. This way an admin tweaking a card's power affects new sessions and on the next snap the user sees the new value.
+
+## GameSession size
+
+A full season is 5 games × ~32 plays × small JSON ≈ comfortably under the 16MB document limit. Persist the play log inline as `events: GameEvent[]`. If this ever grows past ~2MB in practice, split into a `GamePlay` collection keyed by `(sessionId, playId)`.
+
+## Required schemas
+
+Document them as you build them in `docs/architecture/DATA_MODEL.md`. Current set:
+
+- `User` — profile, role, default deck reference, lifetime stats
+- `Deck` — user-owned card and playmaker collection
+- `GameSession` — active or completed run; embeds the season map and current state
+- `Card` — catalog entry: id, side (offense/defense), type, name, basePower, notes
+- `Playmaker` — catalog entry: id, side, position, name, baseBoost, affinityTypes, dpCost (for recruits)
+- `MatchupMatrix` — single doc with the full `[offType][defType] → modifier` table
+- `Upgrade` — catalog entry mapping a base card to an upgraded version
+
+## Don't do
+
+- Don't store JWTs or other secrets in any document.
+- Don't denormalize card/playmaker definitions into `Deck` or `GameSession`. References only.
+- Don't make schema changes without updating the seed script and the doc.

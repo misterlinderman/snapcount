@@ -1,0 +1,72 @@
+---
+description: Client UI — Tailwind, design tokens, server-authoritative rendering
+globs: client/src/**/*.{ts,tsx}
+alwaysApply: true
+---
+
+# Client UI
+
+The client is presentational. Its job is to deal cards visually, capture the user's selection, send the snap to the server, and animate the response. It is **never** the source of truth for game state.
+
+## State boundaries
+
+- **Server state** (decks, sessions, content catalog, profile): React Query. Cache key prefixed by feature: `['session', id]`, `['deck', deckId]`, `['content', 'cards']`.
+- **Active game session** (selected card, selected PM, animation flags, ticker): `GameSessionContext` reducer. Lives only on `PlayPage` and is reset on session end.
+- **Auth**: `useAuth0` from the SDK. Don't proxy it through context.
+- **Forms**: `useState` is fine. Bring in `react-hook-form` only if a form has more than four fields.
+
+## Optimistic UI
+
+Pre-render the snap result on the client using the mirrored engine (`client/src/game/engine/`). When the server response arrives, **replace** the optimistic state with the server's authoritative state. If they disagree, the server wins. Surface a small reconciliation toast in dev only.
+
+## Design tokens
+
+Game-themed colors and typography come from `client/src/styles/tokens.css`. Reach for these before any Tailwind color or hex literal.
+
+| Token | Use |
+|-------|-----|
+| `var(--ink)` / `var(--ink2)` | Masthead, dark sections |
+| `var(--cream)` / `var(--white)` | Page bg, card bg |
+| `var(--muted)` / `var(--rule)` | Labels, dividers |
+| `var(--red)` / `var(--red-mid)` | Blitz FC team color |
+| `var(--blue)` / `var(--blue-mid)` | Storm SC team color |
+| `var(--green-field)` / `var(--green-turf)` | Field, selection states |
+| `var(--gold)` | Playmaker accents, DP, status ticker |
+
+Typography: `Playfair Display SC` for scores and team names, `Playfair Display` italic for card and section names, `Source Serif 4` italic for body. These are loaded once in `styles/fonts.css`.
+
+## Tailwind
+
+Use Tailwind for layout, spacing, responsive breakpoints, hover states, focus rings. Do **not** use Tailwind for game-skin colors (`bg-red-600`, `text-blue-700`) — use the design tokens.
+
+## Components
+
+- One component per file. PascalCase filename.
+- Co-locate small subcomponents only if they're used nowhere else.
+- Props interfaces named `<ComponentName>Props`.
+- Avoid prop drilling beyond two levels — lift to `GameSessionContext` or React Query.
+
+## Mobile-first
+
+The whole game must work one-handed on a 375px viewport. Tap targets ≥ 44px. No hover-only interactions. Test resize behavior on every screen.
+
+## Accessibility
+
+- Every interactive element is reachable by keyboard.
+- Cards have `role="button"` and `aria-pressed` for selection state.
+- The status ticker has `aria-live="polite"`.
+- Color is never the only signal — every selection state has a border or icon change too.
+
+## API client
+
+All HTTP calls go through `client/src/services/api.ts`. It's an axios instance with an interceptor that injects the Auth0 access token. Don't call `fetch` directly.
+
+```typescript
+import api from '@/services/api';
+
+const session = await api.get(`/sessions/${id}`).then((r) => r.data);
+```
+
+## Admin pages
+
+`/admin/*` routes are wrapped with `<RequireAdmin>` (a component that calls `useRequireAdmin` and redirects non-admins to `/`). Server-side gating in `requireAdmin` middleware is the actual security boundary; this is just UX.

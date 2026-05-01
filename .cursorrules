@@ -1,68 +1,107 @@
-# Base MERN template — Cursor IDE rules
+# Snapcount / Gridiron Rogue — Cursor IDE rules
 
-Repository root contains `client/` and `server/` side by side. For diagrams and request flow, read `docs/architecture/ARCHITECTURE.md`.
+You are working on **Snapcount**, the production hosting of **Gridiron Rogue** — a rogue-like card football game built on the MERN stack. The single-file HTML POC `gridiron-rogue-v2.html` and `docs/game/GAME_DESIGN.md` are the design source of truth. The architecture lives in `docs/architecture/ARCHITECTURE.md`. The phased build plan lives in `docs/build/BUILD_PLAN.md`.
 
-You are working on a MERN stack application with the following architecture:
+## Tech stack
 
-## Tech Stack
 - **Frontend**: Vite + React 18 + TypeScript
-- **Styling**: Tailwind CSS (utility-first)
+- **Styling**: Tailwind CSS + a thin design-token layer (`client/src/styles/tokens.css`) for the newspaper-sports look
+- **State**: React Context for active game session, React Query for everything else
 - **Backend**: Express.js + TypeScript
-- **Database**: MongoDB with Mongoose ODM
-- **Authentication**: Auth0 (JWT-based)
+- **Database**: MongoDB + Mongoose
+- **Auth**: Auth0 (JWT, with a `https://snapcount/roles` custom claim used to gate admin routes)
+- **Testing**: Vitest
 
-## Project Structure
+## Project structure
+
 ```
-client/          # React frontend
+client/                       # React frontend
   src/
-    components/  # Reusable UI components
-    pages/       # Route-level components
-    hooks/       # Custom React hooks
-    services/    # API calls (axios)
-    context/     # React context providers
-    types/       # TypeScript interfaces
-server/          # Express backend
+    components/
+      game/                   # Card, Hand, Scoreboard, Field, Resolution, RoleBanner
+      locker/                 # Locker Room, draft tracks
+      overlays/               # CoinToss, TouchdownReward, FinalWhistle
+      admin/                  # Admin console widgets
+      ui/                     # Generic Button, Modal, Badge
+    pages/
+      admin/                  # /admin/* — gated client-side by useRequireAdmin
+    game/
+      engine/                 # Mirrored client engine (optimistic UI only)
+      state/                  # Reducers + GameSessionContext
+      types.ts
+    hooks/
+    services/                 # api.ts (axios + Auth0 token injection)
+    context/
+    styles/                   # tokens.css, fonts.css
+server/                       # Express backend
   src/
-    controllers/ # Business logic (currently inline in routes)
-    middleware/  # Express middleware (auth, errors)
-    models/      # Mongoose schemas
-    routes/      # API route definitions
-    services/    # External service integrations
-    config/      # Configuration (database, etc.)
-    types/       # TypeScript interfaces
+    controllers/
+    middleware/               # auth.ts, errorHandler.ts, requireAdmin.ts
+    models/                   # User, Deck, GameSession, Card, Playmaker, MatchupMatrix
+    routes/
+      admin/                  # /api/admin/* — wrapped with requireAdmin
+    game/
+      engine/                 # Authoritative pure functions (state, action) → state
+      content/                # Catalog loader (DB-first, seed fallback)
+      seed/                   # Seed scripts mirroring the v0.2 starter deck
+    services/
+    config/
+    types/
+docs/
+  game/GAME_DESIGN.md         # RULES — source of truth for game logic
+  architecture/               # ARCHITECTURE, DATA_MODEL, API, AUTH, ADMIN
+  build/BUILD_PLAN.md         # Phased Cursor + Claude prompts
 ```
 
-## Code Conventions
+## Hard rules — never violate
+
+1. **The server is authoritative.** Card power, playmaker multiplier, matchup modifier, yards, score, possession — all computed in `server/src/game/engine/`. The client renders what the server returns. Never trust a snap result that came from the client.
+2. **The engine is pure.** Pure functions in `server/src/game/engine/`. No DB calls, no `Date.now()`, no `Math.random()` outside an injected RNG. The route handler is the only place that pulls state from Mongo and writes it back.
+3. **Game content is data, not code.** Cards, playmakers, the matchup matrix, and upgrades live in MongoDB collections. The engine takes them as a `GameContent` argument. The seed script populates them from `server/src/game/seed/`. Admins editing values must affect new sessions immediately.
+4. **The HTML POC is the spec.** When implementing a game rule, match `gridiron-rogue-v2.html` and `docs/game/GAME_DESIGN.md` exactly. Don't invent new rules. If the spec is ambiguous, ask.
+5. **Auth0 JWT on every protected endpoint.** Use `checkJwt`. Extract user with `extractUserId(req)`.
+6. **Admin endpoints use `requireAdmin`.** Gate server-side via the `https://snapcount/roles` claim. Client-side gating is for UX only, never for security.
+7. **Use design tokens for the game skin.** The newspaper-broadcast aesthetic uses CSS custom properties: `--ink`, `--ink2`, `--cream`, `--white`, `--muted`, `--rule`, `--red`, `--red-mid`, `--blue`, `--blue-mid`, `--green-field`, `--green-turf`, `--gold`. Don't replace them with hex literals or generic Tailwind colors.
+8. **Never store sensitive data in localStorage.** JWTs are managed by the Auth0 SDK in memory. Decks, sessions, settings — all in Mongo.
+
+## Code conventions
 
 ### TypeScript
-- Use strict mode
-- Define interfaces for all data structures
-- Prefer `interface` over `type` for object shapes
-- Use explicit return types for functions when not obvious
+- Strict mode on.
+- `interface` for object shapes, `type` for unions and primitives.
+- Explicit return types on exported functions.
+- No `any`. If you genuinely don't know the type, use `unknown` and narrow.
 
-### React (Frontend)
-- Use functional components with hooks
-- Use `useAuth0` hook for authentication
-- API calls go through `services/api.ts` with token injection
-- Use Tailwind utility classes, avoid custom CSS unless necessary
-- Component files use PascalCase: `MyComponent.tsx`
+### React (client)
+- Functional components with hooks.
+- File names: `PascalCase.tsx` for components, `camelCase.ts` for hooks/utilities.
+- API calls go through `client/src/services/api.ts` so the Auth0 token is injected automatically.
+- Server state via React Query (`useQuery`, `useMutation`). Active game session state via the `GameSessionContext` reducer.
+- Tailwind for layout and spacing. Design tokens for game-themed colors and typography. Avoid one-off custom CSS unless it's a token addition.
+- One component per file. Co-locate small subcomponents only when they're truly never reused.
 
-### Express (Backend)
-- Use async/await with asyncHandler wrapper for error handling
-- Routes are protected with `checkJwt` middleware from Auth0
-- Extract user ID with `extractUserId(req)` from auth payload
-- Use Mongoose models for database operations
-- Return consistent JSON responses
+### Express (server)
+- `async/await` with `asyncHandler` for error propagation.
+- Routes are thin: validate input → call a service or engine function → return JSON. Heavy logic does not live in the route file.
+- All protected routes use `checkJwt`. Admin routes also use `requireAdmin`.
+- Throw via `createError(message, statusCode)` so the global error handler returns a consistent shape.
+- Mongoose models are the only place schemas are defined. Re-export them from `server/src/models/index.ts`.
 
-### Patterns to Follow
+### Game engine (both sides)
+- Pure functions. `(state, action, content, rng) => { state, events }`.
+- The same TypeScript types are shared via `server/src/game/types.ts` and re-exported into the client through a copy or a shared package. Keep these in sync.
+- `events` is an array of structured outcomes (`PLAY_RESOLVED`, `TOUCHDOWN`, `INTERCEPTION`, `QUARTER_END`, `GAME_END`). The client consumes events to drive animations and toasts.
 
-**Creating a new API route:**
+## Patterns
+
+### A new protected user route
+
 ```typescript
-// server/src/routes/newRoute.ts
+// server/src/routes/decks.ts
 import { Router, Response } from 'express';
 import { checkJwt, AuthRequest, extractUserId } from '../middleware/auth';
 import { asyncHandler, createError } from '../middleware/errorHandler';
-import { Model } from '../models';
+import { Deck } from '../models';
 
 const router = Router();
 router.use(checkJwt);
@@ -70,112 +109,142 @@ router.use(checkJwt);
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = extractUserId(req);
   if (!userId) throw createError('Unauthorized', 401);
-  
-  const items = await Model.find({ user: userId });
-  res.json(items);
+  const decks = await Deck.find({ user: userId }).sort({ updatedAt: -1 });
+  res.json(decks);
 }));
 
 export default router;
 ```
 
-**Creating a new React page:**
+### A new admin route
+
 ```typescript
-// client/src/pages/NewPage.tsx
-import { useState, useEffect } from 'react';
-import { useAuth0 } from '@auth0/auth0-react';
-import api from '../services/api';
+// server/src/routes/admin/cards.ts
+import { Router, Response } from 'express';
+import { checkJwt, AuthRequest } from '../../middleware/auth';
+import { requireAdmin } from '../../middleware/requireAdmin';
+import { asyncHandler } from '../../middleware/errorHandler';
+import { Card } from '../../models';
 
-function NewPage() {
-  const { user } = useAuth0();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+const router = Router();
+router.use(checkJwt, requireAdmin);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('/endpoint');
-        setData(response.data);
-      } catch (error) {
-        console.error('Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+router.get('/', asyncHandler(async (_req: AuthRequest, res: Response) => {
+  const cards = await Card.find().sort({ side: 1, type: 1, name: 1 });
+  res.json(cards);
+}));
 
-  if (loading) return <div>Loading...</div>;
-
-  return (
-    <div className="max-w-4xl mx-auto">
-      {/* Content */}
-    </div>
-  );
-}
-
-export default NewPage;
+export default router;
 ```
 
-**Creating a new Mongoose model:**
+### A new Mongoose model
+
 ```typescript
-// server/src/models/NewModel.ts
+// server/src/models/Deck.ts
 import mongoose, { Document, Schema } from 'mongoose';
 
-export interface INewModel extends Document {
-  name: string;
+export interface IDeck extends Document {
   user: string;
+  name: string;
+  isDefault: boolean;
+  offense: Array<{ cardId: string; upgrade?: string }>;
+  defense: Array<{ cardId: string; upgrade?: string }>;
+  offPlaymakers: string[];
+  defPlaymakers: string[];
+  dp: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const newModelSchema = new Schema<INewModel>(
+const deckSchema = new Schema<IDeck>(
   {
-    name: { type: String, required: true, trim: true },
     user: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true, default: 'My Team' },
+    isDefault: { type: Boolean, default: false },
+    offense: [{ cardId: { type: String, required: true }, upgrade: String }],
+    defense: [{ cardId: { type: String, required: true }, upgrade: String }],
+    offPlaymakers: [{ type: String }],
+    defPlaymakers: [{ type: String }],
+    dp: { type: Number, default: 2 },
   },
   { timestamps: true }
 );
 
-export const NewModel = mongoose.model<INewModel>('NewModel', newModelSchema);
+export const Deck = mongoose.model<IDeck>('Deck', deckSchema);
 ```
 
-## Common Tasks
+### A new React page
 
-### Add a protected route
-1. Create route file in `server/src/routes/`
-2. Import and use `checkJwt` middleware
-3. Register route in `server/src/index.ts`
+```typescript
+// client/src/pages/LockerRoomPage.tsx
+import { useQuery } from '@tanstack/react-query';
+import { useAuth0 } from '@auth0/auth0-react';
+import api from '../services/api';
 
-### Add a new page
-1. Create component in `client/src/pages/`
-2. Add route in `client/src/App.tsx`
-3. Wrap with `<ProtectedRoute>` if auth required
+function LockerRoomPage() {
+  const { user } = useAuth0();
+  const { data: deck, isLoading } = useQuery({
+    queryKey: ['deck', 'default'],
+    queryFn: () => api.get('/decks/default').then((r) => r.data),
+  });
 
-### Add a database model
-1. Create model in `server/src/models/`
-2. Export from `server/src/models/index.ts`
-3. Create corresponding routes/controllers
+  if (isLoading) return <div className="p-8 text-muted">Loading…</div>;
 
-## Environment Variables
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      {/* Locker room UI */}
+    </div>
+  );
+}
 
-### Client (.env)
-- `VITE_API_URL` - Backend API URL
-- `VITE_AUTH0_DOMAIN` - Auth0 tenant domain
-- `VITE_AUTH0_CLIENT_ID` - Auth0 application client ID
-- `VITE_AUTH0_AUDIENCE` - Auth0 API identifier
+export default LockerRoomPage;
+```
 
-### Server (.env)
-- `PORT` - Server port (default: 3001)
-- `MONGODB_URI` - MongoDB connection string
-- `AUTH0_DOMAIN` - Auth0 tenant domain
-- `AUTH0_AUDIENCE` - Auth0 API identifier
+## Common tasks
 
-## Shopify Integration Notes
+### Add a new card type
+1. Update the `CardType` union in `server/src/game/types.ts`.
+2. Add a row to the `MatchupMatrix` for that offensive type vs. all defensive types (or vice versa).
+3. Add seed entries in `server/src/game/seed/cards.ts`.
+4. Add a `badge-*` style in `client/src/styles/tokens.css`.
+5. Update `docs/game/GAME_DESIGN.md`.
 
-For Shopify embedded apps, you'll need to:
-1. Install `@shopify/app-bridge-react`
-2. Replace Auth0Provider with Shopify's AppBridgeProvider
-3. Use Shopify session tokens instead of Auth0 JWT
-4. Configure Shopify OAuth flow in server
+### Add a new admin screen
+1. Add the route in `client/src/App.tsx` under `/admin/*`, wrapped with `<RequireAdmin>`.
+2. Build the page in `client/src/pages/admin/`.
+3. Add the corresponding API in `server/src/routes/admin/`, wrapped with `requireAdmin`.
+4. Document it in `docs/architecture/ADMIN.md`.
 
-The current auth setup is modular - the `checkJwt` middleware can be swapped for Shopify verification.
+### Change a game rule
+1. Update `docs/game/GAME_DESIGN.md` first.
+2. Update the engine in `server/src/game/engine/` (and the mirror in `client/src/game/engine/`).
+3. Add or update an engine test.
+4. If the rule depends on tunable content (cards, matchup values, multipliers), update the seed and admin UI rather than hardcoding.
+
+## Environment variables
+
+### Client
+- `VITE_API_URL` — backend API URL
+- `VITE_AUTH0_DOMAIN`
+- `VITE_AUTH0_CLIENT_ID`
+- `VITE_AUTH0_AUDIENCE`
+
+### Server
+- `PORT` (default 3001)
+- `MONGODB_URI`
+- `AUTH0_DOMAIN`
+- `AUTH0_AUDIENCE`
+- `ADMIN_EMAILS` — comma-separated emails granted admin role on first login
+- `JWT_SECRET` — dev fallback only
+
+## Anti-patterns to avoid
+
+- **Hardcoding card or matchup values in the engine.** Pass them in via `GameContent`.
+- **Computing yards or scores on the client.** Show the server's resolution; don't compute it.
+- **Storing JWTs in localStorage.** Auth0 SDK handles tokens; trust it.
+- **Bypassing `requireAdmin` on a quick admin tool.** Every `/api/admin/*` route is gated, no exceptions.
+- **Putting business logic in route handlers.** Routes are thin; logic lives in services or the engine.
+- **Mixing concerns in a component.** A `Card` is presentational; selection logic lives in the parent or a hook.
+- **Reaching into the DOM with `document.querySelector`.** React refs only.
+
+When the design doc and the existing code disagree, the design doc wins until updated. When you're unsure, ask rather than guess.

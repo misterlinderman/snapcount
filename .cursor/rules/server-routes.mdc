@@ -1,0 +1,66 @@
+---
+description: Server routes — auth, admin gating, thin handlers
+globs: server/src/routes/**/*.ts
+alwaysApply: true
+---
+
+# Server routes
+
+Routes are thin orchestration. They validate input, call a service or the engine, and return JSON. They do not contain business logic.
+
+## Auth
+
+- Every protected route uses `checkJwt` from `middleware/auth`.
+- Extract the user id with `extractUserId(req)`. If missing, throw `createError('Unauthorized', 401)`.
+- Public routes (e.g. `/api/health`, `/api/content/*`) skip `checkJwt`.
+
+## Admin
+
+- Every route under `routes/admin/*` uses both `checkJwt` and `requireAdmin`.
+- `requireAdmin` reads the `https://snapcount/roles` claim from the access token. The Auth0 Action that injects this claim is documented in `docs/architecture/AUTH.md`.
+- Admin routes never modify another user's deck or session unless that's the explicit purpose of the endpoint (e.g. impersonation for support).
+
+## Error handling
+
+- Wrap async handlers with `asyncHandler`. The global error handler in `middleware/errorHandler` returns `{ error, message, statusCode }`.
+- Throw structured errors with `createError(message, statusCode)`. Don't return error JSON manually.
+- Log unexpected errors via the request logger; don't `console.log`.
+
+## Validation
+
+- Use Zod to parse `req.body`, `req.query`, and `req.params`. Reject invalid input with a 400.
+- Schemas live in `server/src/routes/<feature>/schema.ts` for reuse.
+
+## Game-session routes specifically
+
+- `POST /api/sessions/:id/snap` is the most security-sensitive endpoint. It receives only `{ cardId, playmakerId }` from the client. The server loads the session, confirms the card and playmaker are in the user's hand, runs the engine, and writes back the new state.
+- Never accept a power, multiplier, or yard delta from the client.
+- Idempotency: the request includes a `playId` (UUID generated client-side). If the same `playId` arrives twice, return the cached result rather than re-resolving.
+
+## Shape
+
+```typescript
+import { Router, Response } from 'express';
+import { checkJwt, AuthRequest, extractUserId } from '../middleware/auth';
+import { asyncHandler, createError } from '../middleware/errorHandler';
+import { resolveSnap } from '../game/engine';
+import { GameSession, Deck } from '../models';
+import { snapInput } from './sessions/schema';
+
+const router = Router();
+router.use(checkJwt);
+
+router.post('/:id/snap', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = extractUserId(req);
+  if (!userId) throw createError('Unauthorized', 401);
+
+  const input = snapInput.parse(req.body);
+  const session = await GameSession.findOne({ _id: req.params.id, user: userId });
+  if (!session) throw createError('Session not found', 404);
+
+  // ... load content, run engine, write back
+  res.json({ state: session.state, events });
+}));
+
+export default router;
+```

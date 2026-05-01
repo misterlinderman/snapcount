@@ -1,283 +1,225 @@
-# MERN Stack Starter Template
+# Snapcount — Gridiron Rogue
 
-A modern, production-ready MERN stack boilerplate with TypeScript, Auth0 authentication, and Tailwind CSS.
+> *Rogue-like card football for the web. MERN stack. Auth0 accounts, persistent decks, season runs, and an admin console for tuning the meta.*
 
-## Tech Stack
+Snapcount is the production hosting of **Gridiron Rogue** — a player-vs-CPU card football game where matchups, playmaker assignment, and a rogue-like progression layer reward reading the CPU rather than just stacking power. The single-file HTML POC (`v0.2`) is the design source of truth; this codebase ports that game loop to a MERN stack with user accounts, server-authoritative game state, and an admin console for adjusting cards, playmakers, and the matchup matrix without redeploying.
+
+This README is the **operator's guide**. For the game design, see [`docs/game/GAME_DESIGN.md`](docs/game/GAME_DESIGN.md). For the system layout, see [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md). For the phased implementation plan, see [`docs/build/BUILD_PLAN.md`](docs/build/BUILD_PLAN.md).
+
+---
+
+## Tech stack
 
 | Layer | Technology |
 |-------|------------|
 | Frontend | Vite + React 18 + TypeScript |
-| Styling | Tailwind CSS |
+| Styling | Tailwind CSS (with the Gridiron Rogue design tokens layered on top) |
 | Routing | React Router v6 |
+| State | React Context + React Query for server state |
 | Backend | Express.js + TypeScript |
 | Database | MongoDB + Mongoose |
-| Authentication | Auth0 (swappable for Shopify OAuth) |
-| Dev Tools | ESLint, Prettier, Nodemon, Concurrently |
+| Authentication | Auth0 (JWT, with role claim for `admin`) |
+| Tooling | ESLint, Prettier, Nodemon, Concurrently |
 
-## Project Structure
-
-Repository root is the app workspace: `client/` and `server/` sit beside shared tooling and docs (no extra wrapper folder).
+## Repository layout
 
 ```
 ./
-├── client/                 # React frontend (Vite)
+├── client/                       # React frontend (Vite)
 │   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Route-level components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── services/       # API calls and external services
-│   │   ├── context/        # React context providers
-│   │   ├── styles/         # Global styles
-│   │   └── types/          # TypeScript type definitions
+│   │   ├── components/
+│   │   │   ├── game/             # Card, Hand, Scoreboard, Field, Resolution
+│   │   │   ├── locker/           # Locker Room, draft tracks
+│   │   │   ├── overlays/         # CoinToss, TouchdownReward, FinalWhistle
+│   │   │   ├── admin/            # Admin console widgets
+│   │   │   └── ui/               # Buttons, modals, badges
+│   │   ├── pages/
+│   │   │   ├── HomePage.tsx
+│   │   │   ├── PlayPage.tsx      # Active game session
+│   │   │   ├── LockerRoomPage.tsx
+│   │   │   ├── SeasonMapPage.tsx
+│   │   │   ├── ProfilePage.tsx
+│   │   │   └── admin/            # /admin/* (gated by role)
+│   │   ├── game/
+│   │   │   ├── engine/           # Pure game logic (mirrors server engine)
+│   │   │   ├── state/            # Game state reducers
+│   │   │   └── types.ts
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── context/
+│   │   └── styles/               # tokens.css, fonts.css
 │   └── public/
-├── server/                 # Express backend
+├── server/                       # Express backend
 │   └── src/
-│       ├── middleware/     # Express middleware
-│       ├── models/         # Mongoose schemas
-│       ├── routes/         # API route definitions
-│       ├── config/         # Configuration files
-│       └── types/          # TypeScript type definitions
-├── docs/                   # Guides and architecture notes
-├── .cursor/rules/          # Cursor project rules (optional; see also .cursorrules)
-├── .env.example            # Root env template
-├── package.json            # Root scripts (dev, build, lint)
-├── README.md
-└── SETUP.md
+│       ├── controllers/
+│       ├── middleware/           # auth, errors, requireAdmin
+│       ├── models/               # User, Deck, GameSession, Card, Playmaker, MatchupMatrix
+│       ├── routes/               # /api/*, /api/admin/*
+│       ├── game/
+│       │   ├── engine/           # Authoritative resolution engine
+│       │   ├── content/          # Loads cards/playmakers/matchups from DB or seed
+│       │   └── seed/             # Seed scripts mirroring v0.2 starter deck
+│       ├── services/
+│       ├── config/
+│       └── types/
+├── docs/
+│   ├── README.md                 # Index of guides
+│   ├── architecture/             # System diagrams, request flow, data model
+│   ├── game/                     # Game design source of truth
+│   └── build/                    # Phased Cursor + Claude prompts
+├── .cursor/rules/                # Per-area Cursor rules (mdc)
+├── .cursorrules                  # Repo-wide Cursor rules
+├── AGENTS.md                     # Fast orientation for any AI agent
+├── .env.example
+├── package.json
+└── README.md                     # This file
 ```
 
-For a deeper layout and data flow, see [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md).
+The `client/` and `server/` boundary is the same as the base template. What's added is the `game/` directory on each side, the `admin/` subtrees, and the design-token CSS layered onto Tailwind.
 
 ## Prerequisites
 
-- Node.js 18+ (recommend using nvm)
-- MongoDB Atlas account (or local MongoDB)
-- Auth0 account (free tier works)
-- Git installed
-- Cursor IDE
+- Node.js 18+ (use nvm)
+- MongoDB Atlas account (or local MongoDB 6+)
+- Auth0 free-tier tenant
+- Cursor IDE (recommended, but not required)
 
----
-
-## Quick Start
-
-### 1. Clone and Install
+## Quick start
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd <your-project-folder>
+git clone https://github.com/misterlinderman/snapcount.git
+cd snapcount
 
-# Install all dependencies (root, client, and server)
+# Install everything
 npm run install:all
-```
 
-### 2. Environment Setup
-
-Copy the example environment files:
-
-```bash
+# Copy env templates
 cp .env.example .env
 cp client/.env.example client/.env
 cp server/.env.example server/.env
-```
 
-### 3. Configure Services
+# Edit the .env files — see "Environment variables" below
 
-#### MongoDB Atlas Setup
+# Seed the game content (cards, playmakers, matchup matrix)
+npm run seed
 
-1. Go to [MongoDB Atlas](https://www.mongodb.com/atlas)
-2. Create a free cluster
-3. Create a database user (Database Access → Add New Database User)
-4. Whitelist your IP (Network Access → Add IP Address → Allow Access from Anywhere for dev)
-5. Get connection string (Connect → Connect your application)
-6. Add to `server/.env`:
-   ```
-   MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority
-   ```
-
-#### Auth0 Setup
-
-1. Go to [Auth0](https://auth0.com) and create a free account
-2. Create a new Application (Applications → Create Application → Single Page Application)
-3. Configure Allowed Callback URLs: `http://localhost:5173`
-4. Configure Allowed Logout URLs: `http://localhost:5173`
-5. Configure Allowed Web Origins: `http://localhost:5173`
-6. Create an API (Applications → APIs → Create API)
-   - Name: `MERN Starter API`
-   - Identifier: `http://localhost:3001/api` (this becomes your audience)
-7. Add credentials to your `.env` files (see Environment Variables section)
-
-### 4. Run the Application
-
-From the **repository root** (where the root `package.json` lives), use a single command:
-
-```bash
+# Run the API and Vite together
 npm run dev
 ```
 
-This starts the API and Vite together via `concurrently` (ports **3001** and **5173**). You do not need separate terminals unless you prefer them.
+Frontend runs on `http://localhost:5173`. API runs on `http://localhost:3001`. The Vite dev server proxies `/api` to the backend.
 
-Optional — run only one side while debugging:
-
-```bash
-npm run dev:server   # API only — http://localhost:3001
-npm run dev:client   # Frontend only — http://localhost:5173
-```
-
-If `npm run dev` errors with `concurrently` not found, run `npm install` at the repository root (or `npm run install:all` once).
-
----
-
-## Environment Variables
+## Environment variables
 
 ### Root `.env`
-```env
+
+```
 NODE_ENV=development
 ```
 
-### Client `.env`
-```env
+### `client/.env`
+
+```
 VITE_API_URL=http://localhost:3001/api
 VITE_AUTH0_DOMAIN=your-tenant.auth0.com
 VITE_AUTH0_CLIENT_ID=your-client-id
 VITE_AUTH0_AUDIENCE=http://localhost:3001/api
 ```
 
-### Server `.env`
-```env
+### `server/.env`
+
+```
 PORT=3001
 NODE_ENV=development
 MONGODB_URI=mongodb+srv://...
 AUTH0_DOMAIN=your-tenant.auth0.com
 AUTH0_AUDIENCE=http://localhost:3001/api
-JWT_SECRET=your-fallback-secret-for-dev
+JWT_SECRET=dev-fallback-secret
+ADMIN_EMAILS=you@example.com   # comma-separated; granted admin role on first login
 ```
 
----
+### Auth0 setup
 
-## Available Scripts
+1. Create a Single Page Application — set callback, logout, and web origin to `http://localhost:5173`.
+2. Create an API named `Snapcount API` with identifier `http://localhost:3001/api` (this becomes your audience).
+3. In **Actions → Library**, add a Login flow action that injects a `https://snapcount/roles` claim into the access token. The server checks this claim against `ADMIN_EMAILS` to gate `/api/admin/*`. See `docs/architecture/AUTH.md` for the snippet.
+
+## Available scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start both client and server in development |
-| `npm run dev:client` | Start only the frontend |
-| `npm run dev:server` | Start only the backend |
-| `npm run build` | Build both client and server |
-| `npm run install:all` | Install dependencies for root, client, and server |
-| `npm run lint` | Run ESLint on both projects |
-| `npm run format` | Run Prettier on both projects |
+| `npm run dev` | Start client + server together |
+| `npm run dev:client` | Frontend only (5173) |
+| `npm run dev:server` | API only (3001) |
+| `npm run build` | Production build of both |
+| `npm run lint` | ESLint across both packages |
+| `npm run format` | Prettier across both packages |
+| `npm run seed` | Seed cards, playmakers, and matchup matrix from `server/src/game/seed/` |
+| `npm run seed:reset` | Drop game content collections and reseed |
+| `npm test` | Run engine tests (Vitest, server-side) |
 
----
+## API surface (summary)
 
-## API Endpoints
+A complete reference lives in [`docs/architecture/API.md`](docs/architecture/API.md). Highlights:
 
-### Public Routes
-- `GET /api/health` - Health check
+**Public**
+- `GET /api/health` — liveness check
+- `GET /api/content/cards` — full card catalog (cached, public)
+- `GET /api/content/playmakers` — full playmaker catalog
+- `GET /api/content/matchups` — matchup matrix
 
-### Protected Routes (require Auth0 token)
-- `GET /api/users/me` - Get current user profile
-- `PUT /api/users/me` - Update current user profile
-- `GET /api/items` - Get all items for user
-- `POST /api/items` - Create new item
-- `PUT /api/items/:id` - Update item
-- `DELETE /api/items/:id` - Delete item
+**Authenticated user**
+- `GET /api/users/me` — current user profile
+- `GET /api/decks` — list user's decks
+- `POST /api/decks` — create a new deck
+- `PUT /api/decks/:id` — rename / set default
+- `POST /api/sessions` — start a new game session (returns session id + initial state)
+- `GET /api/sessions/:id` — load game session
+- `POST /api/sessions/:id/snap` — submit a play; server resolves and returns updated state
+- `POST /api/sessions/:id/redraw` — draw a fresh hand (cost may apply)
+- `POST /api/sessions/:id/td-reward` — pick one of three TD rewards
+- `POST /api/sessions/:id/locker` — spend DP on a draft / upgrade / recruit action
 
----
+**Admin (requires `admin` role claim)**
+- `GET/POST/PUT/DELETE /api/admin/cards` — CRUD on the card catalog
+- `GET/POST/PUT/DELETE /api/admin/playmakers`
+- `GET/PUT /api/admin/matchups` — edit the matchup matrix
+- `GET /api/admin/users` — paginated user list
+- `GET /api/admin/sessions` — recent sessions for debugging
+- `GET /api/admin/stats` — global engagement and balance metrics
 
-## Authentication Flow
+## Game loop in 30 seconds
 
-1. User clicks "Login" → Redirected to Auth0
-2. Auth0 authenticates → Returns to app with token
-3. Frontend stores token and includes in API requests
-4. Backend validates token with Auth0
-5. Protected routes accessible
+1. New user signs up → Auth0 → server creates a `User` and seeds them a starter `Deck` (8 offense, 4 defense, 4 playmakers, 2 DP).
+2. User starts a season → `GameSession` is created with 5 game nodes.
+3. Each game opens with a coin toss; the user picks offense or defense for the opening drive.
+4. Each play: client requests a hand → server deals from the user's deck (role-locked) and the CPU's bot deck → user picks card + playmaker → snap → server resolves authoritatively and returns the updated session.
+5. On touchdown, user picks one of three reward upgrades.
+6. After four quarters, Final Whistle. Win → Locker Room (spend DP). Loss → still go to Locker Room with whatever DP was earned.
+7. Win the season → unlock harder season tier.
 
-### Swapping for Shopify Auth
+The engine math is identical to the v0.2 HTML POC. The server replays the same formula on every snap so the client can never tamper with power, multipliers, or yard direction.
 
-For Shopify embedded apps, replace the Auth0 provider with Shopify App Bridge:
+## Documentation index
 
-1. Install `@shopify/app-bridge-react`
-2. Replace `Auth0Provider` with `AppBridgeProvider`
-3. Use Shopify session tokens instead of Auth0 JWT
-4. See `docs/SHOPIFY_AUTH.md` for detailed instructions
-
----
+| Doc | What it covers |
+|-----|----------------|
+| [`docs/game/GAME_DESIGN.md`](docs/game/GAME_DESIGN.md) | Cards, playmakers, matchup matrix, scoring, rogue layer — the design source of truth |
+| [`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md) | System diagram, request flow, server-authoritative model |
+| [`docs/architecture/DATA_MODEL.md`](docs/architecture/DATA_MODEL.md) | Mongoose schemas and ER notes |
+| [`docs/architecture/API.md`](docs/architecture/API.md) | Endpoint reference with request/response shapes |
+| [`docs/architecture/AUTH.md`](docs/architecture/AUTH.md) | Auth0 config, role claim, admin gating |
+| [`docs/architecture/ADMIN.md`](docs/architecture/ADMIN.md) | Admin console scope, screens, and safety rails |
+| [`docs/build/BUILD_PLAN.md`](docs/build/BUILD_PLAN.md) | Phased implementation plan with Cursor + Claude prompts |
+| `AGENTS.md` | Quick orientation for any AI coding agent |
+| `.cursorrules`, `.cursor/rules/` | Cursor IDE conventions |
 
 ## Deployment
 
-### Frontend (Vercel/Netlify)
-```bash
-cd client
-npm run build
-# Deploy dist/ folder
-```
-
-### Backend (Railway/Render/Fly.io)
-```bash
-cd server
-npm run build
-# Deploy with start command: npm start
-```
-
-### Environment Variables for Production
-- Update all URLs to production domains
-- Set `NODE_ENV=production`
-- Use production MongoDB connection string
-- Configure Auth0 for production URLs
-
----
-
-## Documentation and AI context
-
-| Resource | Purpose |
-|----------|---------|
-| [docs/README.md](docs/README.md) | Index of guides |
-| [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) | System layout, auth, and request flow |
-| [AGENTS.md](AGENTS.md) | Quick context for coding agents (stack, commands, conventions) |
-| `.cursorrules` | Legacy Cursor rules (full conventions) |
-| `.cursor/rules/` | Project rules in `.mdc` form |
-
----
-
-## Cursor IDE Tips
-
-### Recommended Extensions
-- ESLint
-- Prettier
-- Tailwind CSS IntelliSense
-- TypeScript Vue Plugin (Volar) - for better TS support
-
-### Cursor AI Prompts
-
-Use these prompts with Cursor's AI to extend the template:
-
-**Add a new feature:**
-> "Add a new protected route /api/posts with CRUD operations following the existing patterns in controllers and routes"
-
-**Add a new page:**
-> "Create a new Dashboard page component with a sidebar layout using Tailwind, following the existing page patterns"
-
-**Database model:**
-> "Create a new Mongoose model for Comments with author reference to User, following the existing model patterns"
-
----
-
-## Troubleshooting
-
-### MongoDB Connection Issues
-- Ensure IP is whitelisted in Atlas
-- Check username/password in connection string
-- Verify cluster is active
-
-### Auth0 Issues
-- Verify callback URLs match exactly
-- Check domain doesn't include `https://`
-- Ensure audience matches API identifier
-
-### Port Conflicts
-- Change ports in respective `.env` files
-- Update CORS and callback URLs accordingly
-
----
+- **Frontend**: Vercel (build `client/`, output `client/dist`).
+- **Backend**: Railway, Render, or Fly.io (build `server/`, start `npm start`).
+- **Database**: MongoDB Atlas.
+- For production, set `NODE_ENV=production`, update Auth0 callback URLs, and rotate `JWT_SECRET`.
 
 ## License
 

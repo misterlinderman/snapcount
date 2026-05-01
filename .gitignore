@@ -5,7 +5,7 @@ node_modules/
 
 # Build outputs
 dist/
-build/
+/build/
 
 # Environment files
 .env
@@ -45,3 +45,6 @@ coverage/
 *.local
 .cache/
 .temp/
+
+# Bundled Cursor attachment staging (canonical docs live under docs/)
+files/
