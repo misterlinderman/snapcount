@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snap Count — Modals & Card Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="snap-count-tokens.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: var(--bg-void); color: var(--text-primary); font-family: var(--font-body); overflow: hidden; }
+  #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  button { font-family: var(--font-display); cursor: pointer; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 2px; }
+
+  @keyframes slideUp    { from { opacity:0; transform:translateY(20px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes fadeIn     { from { opacity:0; } to { opacity:1; } }
+  @keyframes shake      { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+  @keyframes cardDrop   { 0%{opacity:0; transform:translateY(-30px) rotate(-5deg);} 100%{opacity:1; transform:translateY(0) rotate(0deg);} }
+  @keyframes deadGlow   { 0%,100%{box-shadow:0 0 10px rgba(212,34,42,0.3);} 50%{box-shadow:0 0 30px rgba(212,34,42,0.6), 0 0 60px rgba(212,34,42,0.2);} }
+  @keyframes fieldGoalArc { 0%{transform:translateX(0) translateY(0);} 50%{transform:translateX(50%) translateY(-40px);} 100%{transform:translateX(100%) translateY(0);} }
+  @keyframes pillarsGrow { from{transform:scaleY(0); transform-origin:bottom;} to{transform:scaleY(1); transform-origin:bottom;} }
+  @keyframes successPop  { 0%{transform:scale(0.5); opacity:0;} 70%{transform:scale(1.1);} 100%{transform:scale(1); opacity:1;} }
+
+  .filter-chip { background: var(--bg-raised); border: 1px solid var(--bg-border); border-radius: var(--radius-pill); padding: 4px 10px; font-size: 11px; color: var(--text-secondary); cursor: pointer; transition: all 120ms; white-space: nowrap; font-family: var(--font-body); }
+  .filter-chip.active { background: var(--blitz-red-subtle); border-color: var(--blitz-red); color: var(--text-primary); }
+  .filter-chip.blue.active { background: var(--storm-blue-subtle); border-color: var(--storm-blue); }
+  .filter-chip:hover:not(.active) { border-color: var(--text-muted); color: var(--text-primary); }
+  .lib-card { background: var(--bg-surface); border: 1px solid var(--bg-border); border-radius: var(--radius-lg); padding: 10px; cursor: pointer; transition: all 160ms; }
+  .lib-card:hover { border-color: var(--text-muted); transform: translateY(-2px); background: var(--bg-raised); }
+  .lib-card.selected { border-color: var(--gold); box-shadow: 0 0 12px var(--gold-glow); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="snap-count-components.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+
+// ── FULL CARD CATALOG ─────────────────────────────────────────────────────
+
+const ALL_CARDS = [
+  // Offense - Run
+  { id:'ri_pow', name:'RUN IN',    subtype:'POWER',  power:16, basePower:14, rarity:'common', type:'RUN',    role:'offense', copies:3, description:'Powerful inside run, good vs Zone.' },
+  { id:'ri_iso', name:'RUN IN',    subtype:'ISO',     power:13, basePower:13, rarity:'common', type:'RUN',    role:'offense', copies:2, description:'Isolated inside run.' },
+  { id:'ro_swp', name:'RUN OUT',   subtype:'SWEEP',   power:14, basePower:14, rarity:'common', type:'RUN',    role:'offense', copies:2, description:'Outside sweep. Avoids stack.' },
+  { id:'ri_pw2', name:'RUN IN+',   subtype:'POWER+',  power:19, basePower:14, rarity:'RARE',   type:'RUN',    role:'offense', copies:1, description:'Upgraded Power run. +3 vs all.' },
+  // Offense - Pass
+  { id:'pm_spt', name:'PASS M',    subtype:'SPOT',    power:17, basePower:12, rarity:'RARE',   type:'PASS',   role:'offense', copies:2, description:'Good against Zone and Blitz.' },
+  { id:'pd_dep', name:'PASS D',    subtype:'DEEP',    power:18, basePower:16, rarity:'RARE',   type:'PASS',   role:'offense', copies:2, description:'Deep shot. Beats Prevent.' },
+  { id:'ps_slt', name:'PASS S',    subtype:'SLANT',   power:13, basePower:13, rarity:'common', type:'PASS',   role:'offense', copies:2, description:'Quick slant. Beats Man coverage.' },
+  // Offense - Option
+  { id:'op_rd',  name:'OPTION',    subtype:'READ',    power:15, basePower:13, rarity:'common', type:'OPTION', role:'offense', copies:3, description:'Flexible option. Balanced matchups.' },
+  { id:'op_tri', name:'OPTION',    subtype:'TRIPLE',  power:12, basePower:12, rarity:'common', type:'OPTION', role:'offense', copies:1, description:'Triple option. Spreads the field.' },
+  // Rogue
+  { id:'fs_rog', name:'FILM STUDY',subtype:'ROGUE',   power:0,  basePower:0,  rarity:'ROGUE',  type:'ROGUE',  role:'offense', copies:1, description:'Reveals CPU defense scheme for free.' },
+  { id:'hm_rog', name:'HAIL MARY', subtype:'ROGUE',   power:'?',basePower:0,  rarity:'ROGUE',  type:'ROGUE',  role:'offense', copies:1, description:'Very high or zero power — all or nothing.' },
+  // Defense
+  { id:'zo_c3',  name:'ZONE',      subtype:'COVER 3', power:16, basePower:14, rarity:'RARE',   type:'ZONE',   role:'defense', copies:2, description:'Versatile zone. Beats Run & Option.' },
+  { id:'rd_std', name:'RUN D',     subtype:'RUN D',   power:15, basePower:15, rarity:'common', type:'RUN D',  role:'defense', copies:3, description:'Stacked box. Strong vs all runs.' },
+  { id:'mn_cov', name:'MAN',       subtype:'MAN',     power:14, basePower:14, rarity:'common', type:'MAN',    role:'defense', copies:2, description:'Tight man coverage. Weak vs Run.' },
+  { id:'bl_std', name:'BLITZ',     subtype:'BLITZ',   power:17, basePower:14, rarity:'common', type:'BLITZ',  role:'defense', copies:2, description:'Aggressive blitz. High risk/reward.' },
+  { id:'pv_std', name:'PREVENT',   subtype:'PREVENT', power:12, basePower:12, rarity:'common', type:'PREVENT',role:'defense', copies:2, description:'Soft coverage. Stops deep passes.' },
+  { id:'zo_eli', name:'ZONE ELITE',subtype:'COVER 3', power:21, basePower:14, rarity:'RARE',   type:'ZONE',   role:'defense', copies:1, description:'Upgraded Zone. +5 power over base.' },
+];
+
+const VS_DEFENSE_MAP = {
+  'RUN':   { 'RUN D':0,  'ZONE':4,  'MAN':3,  'BLITZ':1,  'PREVENT':3 },
+  'PASS':  { 'RUN D':3,  'ZONE':0,  'MAN':-1, 'BLITZ':3,  'PREVENT':2 },
+  'OPTION':{ 'RUN D':1,  'ZONE':2,  'MAN':1,  'BLITZ':1,  'PREVENT':2 },
+  'ROGUE': { 'RUN D':0,  'ZONE':0,  'MAN':0,  'BLITZ':0,  'PREVENT':0 },
+};
+
+// ── ROGUE DEATH MODAL ─────────────────────────────────────────────────────
+
+function RogueDeathModal({ onConfirm }) {
+  const strippedCards = [
+    { id:'hm_rog', name:'HAIL MARY', subtype:'ROGUE', power:'?', basePower:0, rarity:'ROGUE', type:'ROGUE', role:'offense', copies:1 },
+    { id:'ri_pw2', name:'RUN IN+',   subtype:'POWER+', power:19, basePower:14, rarity:'RARE',  type:'RUN',  role:'offense', copies:1 },
+  ];
+  const [revealed, setRevealed] = React.useState(false);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setRevealed(true), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.92)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(6px)', animation:'fadeIn 300ms' }}>
+      <div style={{ width:'min(500px, 92vw)', background:'var(--bg-surface)', border:'2px solid var(--blitz-red)', borderRadius:16, overflow:'hidden', animation:'slideUp 400ms cubic-bezier(0.175,0.885,0.32,1.275)', boxShadow:'0 0 60px rgba(212,34,42,0.3)', animation:'deadGlow 2s infinite' }}>
+
+        {/* Header */}
+        <div style={{ padding:'24px 24px 18px', background:'linear-gradient(180deg, rgba(212,34,42,0.15) 0%, transparent 100%)', borderBottom:'1px solid rgba(212,34,42,0.3)', textAlign:'center' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:13, color:'var(--blitz-red)', letterSpacing:'0.14em', marginBottom:6 }}>ROGUE DEATH</div>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:40, color:'var(--text-primary)', letterSpacing:'0.02em', lineHeight:1 }}>SEASON SETBACK</div>
+          <div style={{ fontSize:13, color:'var(--text-secondary)', marginTop:8, lineHeight:1.5 }}>
+            Lost by 14+. The stakes strip your most recently drafted cards.
+          </div>
+        </div>
+
+        {/* Loss context */}
+        <div style={{ padding:'14px 24px', borderBottom:'1px solid var(--bg-border)', display:'flex', alignItems:'center', gap:16 }}>
+          <div style={{ flex:1, background:'var(--bg-raised)', borderRadius:8, padding:'10px 14px' }}>
+            <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.08em', marginBottom:3 }}>FINAL SCORE</div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:24 }}>
+              <span style={{ color:'var(--success-green)' }}>28</span>
+              <span style={{ color:'var(--text-muted)', fontSize:16, margin:'0 6px' }}>–</span>
+              <span style={{ color:'var(--blitz-red)' }}>7</span>
+            </div>
+            <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Margin: 21 pts (≥14 triggers Rogue Death)</div>
+          </div>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--blitz-red)' }}>–2</div>
+            <div style={{ fontSize:10, color:'var(--text-muted)' }}>cards stripped</div>
+          </div>
+        </div>
+
+        {/* Cards being stripped */}
+        <div style={{ padding:'16px 24px', borderBottom:'1px solid var(--bg-border)' }}>
+          <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12 }}>CARDS REMOVED FROM ROSTER</div>
+          <div style={{ display:'flex', gap:12 }}>
+            {strippedCards.map((card, i) => (
+              <div key={card.id} style={{ animation: revealed ? `cardDrop 400ms ${i * 150}ms both` : 'none', flex:1 }}>
+                <div style={{ position:'relative' }}>
+                  <PlayCard card={card} role={card.role} />
+                  {/* X overlay */}
+                  {revealed && (
+                    <div style={{ position:'absolute', inset:0, background:'rgba(212,34,42,0.35)', borderRadius:12, display:'flex', alignItems:'center', justifyContent:'center', animation:'fadeIn 200ms both' }}>
+                      <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:28, color:'white', textShadow:'0 0 10px rgba(0,0,0,0.8)' }}>✕</div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign:'center', marginTop:6, fontSize:10, color:'var(--blitz-red)', fontWeight:600 }}>REMOVED</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Remaining deck note */}
+        <div style={{ padding:'12px 24px', borderBottom:'1px solid var(--bg-border)', display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:16 }}>ℹ</span>
+          <div style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.4 }}>
+            Your remaining <strong style={{color:'var(--text-primary)'}}>18 cards</strong> are intact. Rebuild in the locker room before your next game.
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ padding:'16px 24px', display:'flex', gap:10 }}>
+          <button onClick={onConfirm} style={{
+            flex:2, padding:'12px', background:'var(--blitz-red)', border:'none',
+            color:'white', fontFamily:'var(--font-display)', fontWeight:700,
+            fontSize:14, letterSpacing:'0.08em', borderRadius:6,
+          }}>
+            CONTINUE TO LOCKER ROOM →
+          </button>
+          <button style={{
+            flex:1, padding:'12px', background:'transparent', border:'1px solid var(--bg-border)',
+            color:'var(--text-muted)', fontFamily:'var(--font-display)', fontWeight:700,
+            fontSize:11, letterSpacing:'0.04em', borderRadius:6,
+          }}>
+            VIEW RULES
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── FIELD GOAL MODAL ──────────────────────────────────────────────────────
+
+function FieldGoalModal({ yardLine = 38, onAttempt, onDecline }) {
+  const [phase, setPhase] = React.useState('decide'); // decide | attempting | success | miss
+  const distance = 100 - yardLine + 17; // approx FG distance
+  const isShort = distance <= 35;
+  const successChance = isShort ? 100 : Math.max(30, Math.round(100 - (distance - 35) * 3));
+
+  const [meterVal, setMeterVal] = React.useState(0);
+  const [meterDir, setMeterDir] = React.useState(1);
+  const [meterRunning, setMeterRunning] = React.useState(false);
+
+  React.useEffect(() => {
+    if (phase !== 'attempting') return;
+    setMeterRunning(true);
+    let val = 0, dir = 1;
+    const speed = isShort ? 1.5 : 2.8;
+    const interval = setInterval(() => {
+      val += dir * speed;
+      if (val >= 100) { val = 100; dir = -1; }
+      if (val <= 0)   { val = 0;   dir = 1;  }
+      setMeterVal(Math.round(val));
+      setMeterDir(dir);
+    }, 30);
+    return () => clearInterval(interval);
+  }, [phase]);
+
+  const handleKick = () => {
+    setMeterRunning(false);
+    const greenZone = isShort ? 60 : 40;
+    const success = meterVal >= greenZone;
+    setTimeout(() => setPhase(success ? 'success' : 'miss'), 200);
+  };
+
+  const meterColor = meterVal >= (isShort ? 60 : 40) ? 'var(--success-green)' :
+                     meterVal >= 20 ? 'var(--gold)' : 'var(--blitz-red)';
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(6px)', animation:'fadeIn 250ms' }}>
+      <div style={{ width:'min(460px, 92vw)', background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:16, overflow:'hidden', boxShadow:'var(--shadow-elevated)', animation:'slideUp 350ms cubic-bezier(0.175,0.885,0.32,1.275)' }}>
+
+        {/* Header */}
+        <div style={{ padding:'20px 24px 16px', borderBottom:'1px solid var(--bg-border)', background:'linear-gradient(180deg, rgba(232,168,32,0.08) 0%, transparent 100%)' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'var(--gold)', letterSpacing:'0.12em', marginBottom:4 }}>4TH DOWN DECISION</div>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--text-primary)', lineHeight:1 }}>FIELD GOAL?</div>
+        </div>
+
+        {phase === 'decide' && (
+          <>
+            {/* Stats */}
+            <div style={{ padding:'16px 24px', borderBottom:'1px solid var(--bg-border)', display:'flex', gap:16 }}>
+              {[
+                { label:'YARD LINE', value:yardLine, color:'var(--gold)' },
+                { label:'FG DISTANCE', value:`~${distance} YDS`, color:'var(--text-primary)' },
+                { label:'SUCCESS CHANCE', value: isShort ? 'AUTO' : `${successChance}%`, color: isShort ? 'var(--success-green)' : successChance > 60 ? 'var(--success-green)' : successChance > 40 ? 'var(--gold)' : 'var(--blitz-red)' },
+              ].map(s => (
+                <div key={s.label} style={{ flex:1, textAlign:'center', background:'var(--bg-raised)', borderRadius:8, padding:'10px 8px' }}>
+                  <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.08em', marginBottom:4 }}>{s.label}</div>
+                  <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Visual goal posts */}
+            <div style={{ padding:'16px 24px', borderBottom:'1px solid var(--bg-border)', display:'flex', justifyContent:'center' }}>
+              <svg width={200} height={80} viewBox="0 0 200 80">
+                {/* Field */}
+                <rect x={0} y={60} width={200} height={20} fill="var(--field-bg)" opacity={0.6}/>
+                {/* Goal posts */}
+                <rect x={90} y={20} width={4} height={40} fill="var(--gold)" opacity={0.8}/>
+                <rect x={70} y={20} width={60} height={3} fill="var(--gold)" opacity={0.8}/>
+                <rect x={70} y={10} width={3} height={15} fill="var(--gold)" opacity={0.8}/>
+                <rect x={127} y={10} width={3} height={15} fill="var(--gold)" opacity={0.8}/>
+                {/* Ball arc */}
+                <path d={`M 20 70 Q 100 10 180 ${isShort ? 15 : 45}`} stroke={isShort ? 'var(--success-green)' : 'rgba(232,168,32,0.5)'} strokeWidth={2} fill="none" strokeDasharray="4,3"/>
+                {/* Ball */}
+                <ellipse cx={20} cy={70} rx={7} ry={5} fill="var(--gold)" opacity={0.8}/>
+                {/* Through indicator */}
+                {isShort && <text x={100} y={8} textAnchor="middle" fontSize={8} fill="var(--success-green)" fontFamily="var(--font-display)" fontWeight="700">AUTO ✓</text>}
+              </svg>
+            </div>
+
+            {/* Miss note */}
+            {!isShort && (
+              <div style={{ padding:'10px 24px', borderBottom:'1px solid var(--bg-border)', display:'flex', gap:8, alignItems:'flex-start', background:'rgba(212,34,42,0.05)' }}>
+                <span style={{ color:'var(--blitz-red)', flexShrink:0 }}>⚠</span>
+                <div style={{ fontSize:11, color:'var(--text-secondary)' }}>A miss turns possession over at the line of scrimmage. CPU gets the ball.</div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ padding:'16px 24px', display:'flex', gap:10 }}>
+              <button onClick={() => isShort ? onAttempt(true) : setPhase('attempting')} style={{
+                flex:2, padding:'12px',
+                background: isShort ? 'var(--success-green)' : 'var(--gold)',
+                border:'none', color: isShort ? 'white' : 'var(--text-inverse)',
+                fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, letterSpacing:'0.08em', borderRadius:6,
+              }}>
+                {isShort ? '⊕ KICK (AUTO)' : '⊕ ATTEMPT FIELD GOAL'}
+              </button>
+              <button onClick={onDecline} style={{
+                flex:1, padding:'12px', background:'transparent', border:'1px solid var(--bg-border)',
+                color:'var(--text-secondary)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, letterSpacing:'0.04em', borderRadius:6,
+              }}>
+                RUN A PLAY
+              </button>
+            </div>
+          </>
+        )}
+
+        {phase === 'attempting' && (
+          <div style={{ padding:'24px', display:'flex', flexDirection:'column', alignItems:'center', gap:20 }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-secondary)', letterSpacing:'0.08em' }}>PRESS TO KICK</div>
+
+            {/* Power meter */}
+            <div style={{ width:'100%', position:'relative' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                <span style={{ fontSize:10, color:'var(--blitz-red)' }}>WEAK</span>
+                <span style={{ fontSize:10, color:'var(--gold)' }}>SWEET SPOT</span>
+                <span style={{ fontSize:10, color:'var(--blitz-red)' }}>OVER</span>
+              </div>
+              <div style={{ height:24, background:'var(--bg-raised)', borderRadius:4, overflow:'hidden', border:'1px solid var(--bg-border)', position:'relative' }}>
+                {/* Green zone */}
+                <div style={{ position:'absolute', left:`${isShort ? 60 : 40}%`, right:'10%', top:0, bottom:0, background:'rgba(34,197,94,0.2)', borderLeft:'2px solid var(--success-green)', borderRight:'2px solid var(--success-green)' }} />
+                {/* Meter fill */}
+                <div style={{ width:`${meterVal}%`, height:'100%', background:meterColor, transition:'background 100ms', borderRadius:4 }} />
+                {/* Marker */}
+                <div style={{ position:'absolute', left:`${meterVal}%`, top:0, bottom:0, width:3, background:'white', borderRadius:2, transform:'translateX(-50%)' }} />
+              </div>
+              <div style={{ textAlign:'center', marginTop:8, fontFamily:'var(--font-display)', fontWeight:900, fontSize:28, color:meterColor }}>{meterVal}%</div>
+            </div>
+
+            <button onClick={handleKick} style={{
+              padding:'14px 48px', background:'var(--gold)', border:'none',
+              color:'var(--text-inverse)', fontFamily:'var(--font-display)', fontWeight:900,
+              fontSize:18, letterSpacing:'0.1em', borderRadius:8, boxShadow:'var(--glow-gold)',
+              animation:'pillarsGrow 200ms both',
+            }}>
+              ⊕ KICK!
+            </button>
+          </div>
+        )}
+
+        {phase === 'success' && (
+          <div style={{ padding:'32px 24px', display:'flex', flexDirection:'column', alignItems:'center', gap:16, animation:'successPop 500ms both' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:52, color:'var(--success-green)', textShadow:'0 0 30px rgba(34,197,94,0.5)' }}>GOOD!</div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:28, color:'var(--gold)' }}>+3 POINTS</div>
+            <div style={{ fontSize:12, color:'var(--text-secondary)' }}>Kickoff follows. Possession changes.</div>
+            <button onClick={() => onAttempt(true)} style={{ marginTop:8, padding:'12px 32px', background:'var(--blitz-red)', border:'none', color:'white', fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, letterSpacing:'0.08em', borderRadius:6 }}>CONTINUE →</button>
+          </div>
+        )}
+
+        {phase === 'miss' && (
+          <div style={{ padding:'32px 24px', display:'flex', flexDirection:'column', alignItems:'center', gap:16, animation:'shake 400ms both' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:52, color:'var(--blitz-red)', textShadow:'0 0 30px rgba(212,34,42,0.5)' }}>NO GOOD!</div>
+            <div style={{ fontSize:13, color:'var(--text-secondary)', textAlign:'center' }}>Turnover on downs. CPU gets possession at line of scrimmage.</div>
+            <button onClick={() => onAttempt(false)} style={{ marginTop:8, padding:'12px 32px', background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, letterSpacing:'0.08em', borderRadius:6 }}>CONTINUE →</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── CARD LIBRARY ──────────────────────────────────────────────────────────
+
+function CardLibrary({ onClose }) {
+  const [roleFilter, setRoleFilter] = React.useState('ALL');   // ALL | offense | defense
+  const [typeFilter, setTypeFilter] = React.useState('ALL');
+  const [rarityFilter, setRarityFilter] = React.useState('ALL');
+  const [sort, setSort] = React.useState('POWER');
+  const [selectedCard, setSelectedCard] = React.useState(ALL_CARDS[4]); // PASS M default
+  const [searchQ, setSearchQ] = React.useState('');
+
+  const typeOptions = roleFilter === 'defense'
+    ? ['ALL','RUN D','ZONE','MAN','BLITZ','PREVENT']
+    : roleFilter === 'offense'
+    ? ['ALL','RUN','PASS','OPTION','ROGUE']
+    : ['ALL','RUN','PASS','OPTION','ROGUE','ZONE','MAN','BLITZ'];
+
+  const filtered = ALL_CARDS
+    .filter(c => roleFilter === 'ALL' || c.role === roleFilter)
+    .filter(c => typeFilter === 'ALL' || c.type === typeFilter)
+    .filter(c => rarityFilter === 'ALL' || c.rarity === rarityFilter)
+    .filter(c => !searchQ || c.name.toLowerCase().includes(searchQ.toLowerCase()) || c.subtype.toLowerCase().includes(searchQ.toLowerCase()))
+    .sort((a,b) => sort === 'POWER' ? (b.power||0)-(a.power||0) : sort === 'NAME' ? a.name.localeCompare(b.name) : (b.rarity==='RARE'?1:0)-(a.rarity==='RARE'?1:0));
+
+  const vsDefense = VS_DEFENSE_MAP[selectedCard?.type] || {};
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(6px)', animation:'fadeIn 250ms' }}>
+      <div style={{ width:'min(880px, 96vw)', height:'min(620px, 92vh)', background:'var(--bg-deep)', border:'1px solid var(--bg-border)', borderRadius:16, overflow:'hidden', display:'flex', flexDirection:'column', boxShadow:'var(--shadow-elevated)', animation:'slideUp 350ms cubic-bezier(0.175,0.885,0.32,1.275)' }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 20px', borderBottom:'1px solid var(--bg-border)', background:'var(--bg-surface)', flexShrink:0 }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, color:'var(--text-primary)', letterSpacing:'0.04em' }}>CARD LIBRARY</div>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <div style={{ fontSize:11, color:'var(--text-muted)' }}>{filtered.length} / {ALL_CARDS.length} cards</div>
+            <button onClick={onClose} style={{ background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-muted)', padding:'5px 10px', borderRadius:6, fontSize:13 }}>✕</button>
+          </div>
+        </div>
+
+        <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+          {/* Left: grid */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', borderRight:'1px solid var(--bg-border)' }}>
+
+            {/* Filters */}
+            <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--bg-border)', display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
+              {/* Search */}
+              <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search cards…"
+                style={{ background:'var(--bg-raised)', border:'1px solid var(--bg-border)', borderRadius:6, padding:'6px 10px', color:'var(--text-primary)', fontSize:12, fontFamily:'var(--font-body)', outline:'none', width:'100%' }} />
+              {/* Role filter */}
+              <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                {['ALL','offense','defense'].map(r => (
+                  <button key={r} className={`filter-chip ${roleFilter===r?'active':''} ${r==='defense'?'blue':''}`}
+                    onClick={() => { setRoleFilter(r); setTypeFilter('ALL'); }}>
+                    {r.toUpperCase()}
+                  </button>
+                ))}
+                <div style={{ width:1, background:'var(--bg-border)', alignSelf:'stretch', margin:'0 2px' }} />
+                {typeOptions.slice(1).map(t => (
+                  <button key={t} className={`filter-chip ${typeFilter===t?'active':''}`}
+                    onClick={() => setTypeFilter(typeFilter===t?'ALL':t)}>
+                    {t}
+                  </button>
+                ))}
+                <div style={{ marginLeft:'auto', display:'flex', gap:6 }}>
+                  {['ALL','RARE','ROGUE'].map(r => (
+                    <button key={r} className={`filter-chip ${rarityFilter===r?'active':''}`}
+                      onClick={() => setRarityFilter(r)}
+                      style={{ borderColor: r==='RARE' ? 'var(--rarity-rare)' : r==='ROGUE' ? 'var(--rarity-rogue)' : undefined, color: rarityFilter===r ? (r==='RARE'?'var(--rarity-rare)':r==='ROGUE'?'var(--rarity-rogue)':'inherit') : undefined }}>
+                      {r}
+                    </button>
+                  ))}
+                  <select value={sort} onChange={e=>setSort(e.target.value)} style={{ background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-secondary)', fontSize:11, padding:'3px 8px', borderRadius:4, fontFamily:'var(--font-body)' }}>
+                    <option value="POWER">POWER ↓</option>
+                    <option value="NAME">A–Z</option>
+                    <option value="RARITY">RARITY</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Card grid */}
+            <div style={{ flex:1, overflowY:'auto', padding:'12px 14px' }}>
+              {filtered.length === 0 ? (
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--text-muted)', fontSize:13 }}>No cards match filters</div>
+              ) : (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(92px, 1fr))', gap:8 }}>
+                  {filtered.map(card => (
+                    <div key={card.id} className={`lib-card ${selectedCard?.id===card.id?'selected':''}`}
+                      onClick={() => setSelectedCard(card)}>
+                      <div style={{ marginBottom:6 }}>
+                        <div style={{ height:44, background:'var(--bg-deep)', borderRadius:4, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:4, overflow:'hidden' }}>
+                          {card.role === 'offense' ? (
+                            <RouteDiagramOffense subtype={card.subtype} compact={true} />
+                          ) : card.type === 'ROGUE' ? (
+                            <RouteDiagramRogue compact={true} card={card} />
+                          ) : (
+                            <RouteDiagramDefense subtype={card.subtype} compact={true} />
+                          )}
+                        </div>
+                        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:10, color:'var(--text-primary)', letterSpacing:'0.03em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{card.name}</div>
+                        <div style={{ fontSize:8, color:'var(--text-muted)', textTransform:'uppercase' }}>{card.subtype}</div>
+                      </div>
+                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+                        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--text-primary)', lineHeight:1 }}>{card.power}</div>
+                        <div style={{ fontSize:8, color: card.rarity==='RARE'?'var(--rarity-rare)':card.rarity==='ROGUE'?'var(--rarity-rogue)':'var(--rarity-common)', fontWeight:600 }}>{card.rarity}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: detail */}
+          {selectedCard && (
+            <div style={{ width:260, flexShrink:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+              <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+                <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
+                  <PlayCard card={selectedCard} role={selectedCard.role} selected />
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:6 }}>
+                      {[
+                        { label:'TYPE', value:selectedCard.type },
+                        { label:'ROLE', value:selectedCard.role.toUpperCase() },
+                        { label:'RARITY', value:selectedCard.rarity, color: selectedCard.rarity==='RARE'?'var(--rarity-rare)':selectedCard.rarity==='ROGUE'?'var(--rarity-rogue)':'var(--rarity-common)' },
+                        { label:'COPIES', value:`×${selectedCard.copies}` },
+                      ].map(s => (
+                        <div key={s.label}>
+                          <div style={{ fontSize:8, color:'var(--text-muted)', letterSpacing:'0.06em' }}>{s.label}</div>
+                          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:s.color||'var(--text-primary)' }}>{s.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.4 }}>{selectedCard.description}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* VS Defense */}
+              {Object.keys(vsDefense).length > 0 && (
+                <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+                  <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>VS DEFENSE MATCHUP</div>
+                  <div style={{ display:'flex', gap:4 }}>
+                    {Object.entries(vsDefense).map(([def, val]) => (
+                      <div key={def} style={{ flex:1, background:'var(--bg-raised)', borderRadius:6, padding:'6px 4px', textAlign:'center' }}>
+                        <div style={{ fontSize:7, color:'var(--text-muted)', marginBottom:2, lineHeight:1.2 }}>{def}</div>
+                        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color: val > 2 ? 'var(--success-green)' : val < 0 ? 'var(--blitz-red)' : 'var(--text-muted)' }}>
+                          {val > 0 ? `+${val}` : val}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Base power breakdown */}
+              <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+                <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:8 }}>POWER BREAKDOWN</div>
+                {[
+                  { label:'Base Power', value:selectedCard.basePower, color:'var(--text-secondary)' },
+                  { label:'Card Bonus', value:`+${(selectedCard.power||0)-(selectedCard.basePower||0)}`, color:'var(--success-green)' },
+                  { label:'Final Power', value:selectedCard.power, color:'var(--text-primary)', bold:true },
+                ].map(r => (
+                  <div key={r.label} style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
+                    <span style={{ fontSize:11, color:'var(--text-muted)' }}>{r.label}</span>
+                    <span style={{ fontFamily:'var(--font-display)', fontWeight: r.bold ? 700 : 400, fontSize:12, color:r.color }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ flex:1 }} />
+
+              {/* Actions */}
+              <div style={{ padding:'12px 16px', display:'flex', gap:8, flexShrink:0 }}>
+                <button style={{ flex:1, padding:'8px', background:'var(--success-green)', border:'none', color:'var(--text-inverse)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.06em', borderRadius:4 }}>
+                  ⬆ UPGRADE
+                </button>
+                <button style={{ flex:1, padding:'8px', background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-muted)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:10, letterSpacing:'0.04em', borderRadius:4 }}>
+                  ADD TO DECK
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP: MODAL SHOWCASE ──────────────────────────────────────────────
+
+const MOD_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "activeModal": "none",
+  "fgYardLine": 38
+}/*EDITMODE-END*/;
+
+function ModalsScreen() {
+  const [tweaks, setTweak] = useTweaks(MOD_TWEAK_DEFAULTS);
+  const [activeModal, setActiveModal] = React.useState(MOD_TWEAK_DEFAULTS.activeModal);
+  const [showTweaks, setShowTweaks] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const buttons = [
+    { id:'rogue-death', label:'Rogue Death', color:'var(--blitz-red)', icon:'💀' },
+    { id:'field-goal', label:'Field Goal', color:'var(--gold)', icon:'⊕' },
+    { id:'card-library', label:'Card Library', color:'var(--storm-blue-bright)', icon:'📚' },
+  ];
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg-void)', overflow:'hidden' }}>
+
+      {/* Top nav */}
+      <div style={{ padding:'12px 20px', borderBottom:'1px solid var(--bg-border)', background:'var(--bg-deep)', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, color:'var(--text-primary)', letterSpacing:'0.04em' }}>
+          SNAP COUNT — <span style={{ color:'var(--text-muted)', fontWeight:400 }}>Modals & Card Library</span>
+        </div>
+        <div style={{ fontSize:11, color:'var(--text-muted)' }}>Click a button to preview each screen</div>
+      </div>
+
+      {/* Content: three preview buttons + background game scene */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:32, position:'relative', padding:32 }}>
+
+        {/* Background atmosphere */}
+        <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 60% 40% at 50% 60%, rgba(212,34,42,0.04) 0%, transparent 70%)', pointerEvents:'none' }} />
+
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:28, color:'var(--text-primary)', letterSpacing:'0.04em', lineHeight:1, marginBottom:8 }}>IN-GAME EVENTS</div>
+          <div style={{ fontSize:13, color:'var(--text-secondary)' }}>Critical moments that interrupt gameplay. Click any event to preview the full flow.</div>
+        </div>
+
+        {/* Launch buttons */}
+        <div style={{ display:'flex', gap:16, flexWrap:'wrap', justifyContent:'center' }}>
+          {buttons.map(b => (
+            <button key={b.id} onClick={() => setActiveModal(b.id)} style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:12,
+              width:180, padding:'24px 20px',
+              background:'var(--bg-surface)', border:`2px solid ${b.color}44`,
+              borderRadius:16, cursor:'pointer',
+              boxShadow:`0 0 0 0 ${b.color}`,
+              transition:'all 200ms',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = b.color; e.currentTarget.style.boxShadow = `0 0 20px ${b.color}44`; e.currentTarget.style.transform = 'translateY(-3px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = `${b.color}44`; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = ''; }}>
+              <div style={{ fontSize:36 }}>{b.icon}</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-primary)', letterSpacing:'0.06em' }}>{b.label}</div>
+              <div style={{ fontSize:10, color:b.color, letterSpacing:'0.08em', textTransform:'uppercase', fontWeight:600 }}>PREVIEW →</div>
+            </button>
+          ))}
+        </div>
+
+        {/* Info cards */}
+        <div style={{ display:'flex', gap:12, maxWidth:600, width:'100%' }}>
+          {[
+            { icon:'💀', title:'Rogue Death', desc:'Triggers if you lose by 14+. Strips 1–3 recently drafted cards from your roster permanently.' },
+            { icon:'⊕', title:'Field Goal', desc:'4th down option worth 3pts. Short attempts auto-succeed; longer kicks need a power meter.' },
+            { icon:'📚', title:'Card Library', desc:'Full browseable catalog of all 17 cards with filtering, sorting, and matchup details.' },
+          ].map(item => (
+            <div key={item.title} style={{ flex:1, background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, padding:'12px 14px' }}>
+              <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:6 }}>
+                <span style={{ fontSize:16 }}>{item.icon}</span>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-primary)' }}>{item.title}</div>
+              </div>
+              <div style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>{item.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Modals */}
+      {activeModal === 'rogue-death' && (
+        <RogueDeathModal onConfirm={() => setActiveModal('none')} />
+      )}
+      {activeModal === 'field-goal' && (
+        <FieldGoalModal
+          yardLine={MOD_TWEAK_DEFAULTS.fgYardLine}
+          onAttempt={() => setActiveModal('none')}
+          onDecline={() => setActiveModal('none')}
+        />
+      )}
+      {activeModal === 'card-library' && (
+        <CardLibrary onClose={() => setActiveModal('none')} />
+      )}
+
+      {/* Tweaks */}
+      {showTweaks && (
+        <TweaksPanel onClose={() => { setShowTweaks(false); window.parent.postMessage({ type:'__edit_mode_dismissed' }, '*'); }}>
+          <TweakSection title="Modal Preview">
+            <TweakSelect label="Open Modal" value={activeModal}
+              options={['none','rogue-death','field-goal','card-library']}
+              onChange={v => setActiveModal(v)} />
+          </TweakSection>
+          <TweakSection title="Field Goal">
+            <TweakSlider label="Yard Line" value={MOD_TWEAK_DEFAULTS.fgYardLine} min={1} max={99} step={1}
+              onChange={v => setTweak('fgYardLine', v)} />
+          </TweakSection>
+        </TweaksPanel>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ModalsScreen />);
+</script>
+</body>
+</html>

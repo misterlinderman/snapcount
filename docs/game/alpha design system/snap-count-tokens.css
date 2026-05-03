@@ -1,0 +1,165 @@
+/* ============================================================
+   SNAP COUNT — Design Tokens
+   Sharable with Cursor / Claude in IDE
+   ============================================================ */
+
+:root {
+
+  /* ── BRAND COLORS ─────────────────────────────────────────── */
+
+  /* Blitz FC (Red team / Offense) */
+  --blitz-red:        #D4222A;
+  --blitz-red-bright: #FF3340;
+  --blitz-red-dim:    #8B1219;
+  --blitz-red-glow:   rgba(212, 34, 42, 0.35);
+  --blitz-red-subtle: rgba(212, 34, 42, 0.12);
+
+  /* Storm SC (Blue team / Defense) */
+  --storm-blue:        #1565C0;
+  --storm-blue-bright: #2979FF;
+  --storm-blue-dim:    #0D3D7A;
+  --storm-blue-glow:   rgba(21, 101, 192, 0.35);
+  --storm-blue-subtle: rgba(21, 101, 192, 0.12);
+
+  /* Gold — premium moments, rewards, touchdowns */
+  --gold:        #E8A820;
+  --gold-bright: #FFD045;
+  --gold-dim:    #9A6A0A;
+  --gold-glow:   rgba(232, 168, 32, 0.40);
+  --gold-subtle: rgba(232, 168, 32, 0.15);
+
+  /* Green — field, positive outcomes, first downs */
+  --field-green:       #1A4A1A;
+  --field-green-mid:   #276127;
+  --field-green-line:  #3D8C3D;
+  --field-green-bright:#52C852;
+  --success-green:     #22C55E;
+
+  /* Rogue / Purple — special cards */
+  --rogue-purple:       #7C3AED;
+  --rogue-purple-bright:#A855F7;
+  --rogue-purple-glow:  rgba(124, 58, 237, 0.35);
+  --rogue-purple-subtle:rgba(124, 58, 237, 0.15);
+
+  /* ── NEUTRALS / BACKGROUNDS ───────────────────────────────── */
+
+  --bg-void:     #080A0C;   /* deepest black — page bg */
+  --bg-deep:     #0D1117;   /* main app bg */
+  --bg-surface:  #141A22;   /* cards, panels */
+  --bg-raised:   #1C2533;   /* elevated surfaces */
+  --bg-overlay:  #243040;   /* hover states, selected */
+  --bg-border:   #2E3A4A;   /* borders, dividers */
+  --bg-subtle:   rgba(255,255,255,0.04);
+
+  /* ── TEXT ─────────────────────────────────────────────────── */
+
+  --text-primary:   #F0F4F8;
+  --text-secondary: #8CA0B4;
+  --text-muted:     #4A5A6A;
+  --text-inverse:   #0D1117;
+
+  /* ── RARITY SYSTEM ────────────────────────────────────────── */
+
+  --rarity-common:     #6B7C8E;
+  --rarity-uncommon:   #22C55E;
+  --rarity-rare:       #E8A820;  /* gold */
+  --rarity-rogue:      #A855F7;  /* purple */
+
+  /* ── CARD BORDER COLORS BY ROLE ───────────────────────────── */
+
+  --card-offense:  var(--blitz-red);
+  --card-defense:  var(--storm-blue);
+  --card-rogue:    var(--rogue-purple);
+  --card-selected: var(--gold);
+
+  /* ── TYPOGRAPHY ───────────────────────────────────────────── */
+
+  /* Display / Headlines — condensed bold feel */
+  --font-display: 'Barlow Condensed', 'Oswald', sans-serif;
+  /* Body / UI — clean, readable */
+  --font-body:    'Barlow', 'DM Sans', sans-serif;
+  /* Mono — stats, numbers */
+  --font-mono:    'Barlow', 'Roboto Condensed', monospace;
+
+  /* Scale */
+  --text-xs:   10px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   18px;
+  --text-xl:   22px;
+  --text-2xl:  28px;
+  --text-3xl:  36px;
+  --text-4xl:  48px;
+  --text-hero: 72px;
+
+  /* Weight */
+  --weight-normal:    400;
+  --weight-medium:    500;
+  --weight-semibold:  600;
+  --weight-bold:      700;
+  --weight-black:     900;
+
+  /* ── SPACING ──────────────────────────────────────────────── */
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── RADIUS ───────────────────────────────────────────────── */
+
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+
+  /* ── SHADOWS / GLOWS ──────────────────────────────────────── */
+
+  --shadow-card:      0 4px 16px rgba(0,0,0,0.6);
+  --shadow-panel:     0 8px 32px rgba(0,0,0,0.7);
+  --shadow-elevated:  0 16px 48px rgba(0,0,0,0.8);
+
+  --glow-red:    0 0 16px var(--blitz-red-glow),   0 0 32px var(--blitz-red-glow);
+  --glow-blue:   0 0 16px var(--storm-blue-glow),  0 0 32px var(--storm-blue-glow);
+  --glow-gold:   0 0 16px var(--gold-glow),        0 0 48px var(--gold-glow);
+  --glow-purple: 0 0 16px var(--rogue-purple-glow),0 0 32px var(--rogue-purple-glow);
+
+  /* ── TRANSITIONS ──────────────────────────────────────────── */
+
+  --ease-snap:   cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out:    cubic-bezier(0, 0, 0.2, 1);
+
+  --dur-fast:   100ms;
+  --dur-base:   200ms;
+  --dur-slow:   350ms;
+  --dur-reveal: 500ms;
+
+  /* ── FIELD / GAME SPECIFIC ────────────────────────────────── */
+
+  --field-bg:          #0F2A0F;
+  --field-stripe-even: rgba(255,255,255,0.03);
+  --field-stripe-odd:  rgba(255,255,255,0.01);
+  --field-line:        rgba(255,255,255,0.15);
+  --field-end-red:     rgba(212, 34, 42, 0.25);
+  --field-end-blue:    rgba(21, 101, 192, 0.25);
+  --yard-marker:       rgba(255,255,255,0.5);
+
+  /* ── Z-INDEX SCALE ────────────────────────────────────────── */
+
+  --z-base:    1;
+  --z-raised:  10;
+  --z-sticky:  100;
+  --z-overlay: 500;
+  --z-modal:   1000;
+  --z-toast:   2000;
+}

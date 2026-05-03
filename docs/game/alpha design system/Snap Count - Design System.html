@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snap Count — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="snap-count-tokens.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: var(--bg-void); color: var(--text-primary); font-family: var(--font-body); }
+  #root { min-height: 100%; }
+  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 3px; }
+
+  .ds-section { padding: 48px 40px; border-bottom: 1px solid var(--bg-border); }
+  .ds-section:last-child { border-bottom: none; }
+  .section-label { font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--blitz-red); margin-bottom: 6px; }
+  .section-title { font-family: var(--font-display); font-weight: 900; font-size: 28px; color: var(--text-primary); letter-spacing: 0.02em; margin-bottom: 20px; line-height: 1; }
+  .token-row { display: flex; align-items: center; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .token-name { font-family: var(--font-mono); font-size: 12px; color: var(--rogue-purple-bright); min-width: 200px; }
+  .token-value { font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); min-width: 120px; }
+  .token-swatch { width: 28px; height: 28px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); flex-shrink: 0; }
+  .token-desc { font-size: 11px; color: var(--text-muted); }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .spec-table th { text-align: left; padding: 6px 10px; font-family: var(--font-display); font-weight: 700; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--bg-border); }
+  .spec-table td { padding: 7px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--text-secondary); vertical-align: top; }
+  .spec-table td:first-child { font-family: var(--font-mono); color: var(--rogue-purple-bright); font-size: 11px; }
+  .spec-table tr:last-child td { border-bottom: none; }
+  .nav-link { background: transparent; border: none; padding: 6px 12px; font-family: var(--font-display); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted); cursor: pointer; border-radius: 4px; transition: all 120ms; white-space: nowrap; }
+  .nav-link:hover, .nav-link.active { background: var(--bg-raised); color: var(--text-primary); }
+  .component-frame { background: var(--bg-raised); border: 1px solid var(--bg-border); border-radius: 12px; padding: 24px; display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+  code { font-family: 'Courier New', monospace; font-size: 11px; background: var(--bg-raised); border: 1px solid var(--bg-border); border-radius: 4px; padding: 2px 6px; color: var(--rogue-purple-bright); }
+  pre { font-family: 'Courier New', monospace; font-size: 11px; background: var(--bg-surface); border: 1px solid var(--bg-border); border-radius: 8px; padding: 16px; color: var(--text-secondary); overflow-x: auto; line-height: 1.6; }
+  pre .kw { color: var(--rogue-purple-bright); }
+  pre .str { color: var(--success-green); }
+  pre .cmt { color: var(--text-muted); font-style: italic; }
+  pre .prop { color: var(--gold); }
+  .pill { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; font-family: var(--font-body); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="snap-count-components.jsx"></script>
+<script type="text/babel">
+
+// ── SHARED DATA ────────────────────────────────────────────────────────────
+
+const sampleOffCard = { id:'s1', name:'PASS M', subtype:'SPOT', power:17, basePower:12, rarity:'RARE', copies:2, type:'PASS' };
+const sampleDefCard = { id:'s2', name:'ZONE',   subtype:'COVER 3', power:15, basePower:12, rarity:'common', copies:2, type:'DEFENSE' };
+const sampleRogue   = { id:'s3', name:'FILM STUDY', subtype:'ROGUE', power:0, basePower:0, rarity:'ROGUE', copies:1, type:'ROGUE', special:'reveal' };
+const sampleHail    = { id:'s4', name:'HAIL MARY', subtype:'ROGUE', power:'?', basePower:0, rarity:'ROGUE', copies:1, type:'ROGUE', special:'hailmary' };
+
+const SECTION_IDS = ['overview','colors','typography','spacing','cards','buttons','field','modals','screens'];
+
+// ── SECTION: OVERVIEW ─────────────────────────────────────────────────────
+function SectionOverview() {
+  return (
+    <div className="ds-section" id="overview">
+      <div className="section-label">Snap Count</div>
+      <div className="section-title">Design System</div>
+      <p style={{ fontSize:14, color:'var(--text-secondary)', maxWidth:620, lineHeight:1.6, marginBottom:24 }}>
+        A dark-stadium game UI system for an American football card game with RPG and rogue-like mechanics. Built around two opposing team identities — <strong style={{color:'var(--blitz-red)'}}>Blitz FC (Red)</strong> and <strong style={{color:'var(--storm-blue-bright)'}}>Storm SC (Blue)</strong> — with gold reserved for premium moments.
+      </p>
+      <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginBottom:32 }}>
+        {[
+          ['Files', 'snap-count-tokens.css', 'var(--rogue-purple-bright)'],
+          ['Files', 'snap-count-components.jsx', 'var(--rogue-purple-bright)'],
+          ['Fonts', 'Barlow Condensed 400–900', 'var(--gold)'],
+          ['Fonts', 'Barlow 400–700', 'var(--gold)'],
+          ['Version', 'v1.0 May 2026', 'var(--text-muted)'],
+        ].map(([cat,val,color]) => (
+          <div key={val} style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:8, padding:'8px 14px' }}>
+            <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:2 }}>{cat}</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:12, color }}>{val}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:12 }}>
+        {[
+          { label:'Screens built', count:2, desc:'Gameplay · Locker Room' },
+          { label:'Token categories', count:8, desc:'Color · Type · Space · Radius · Shadow · Field · Z-index · Easing' },
+          { label:'Components', count:14, desc:'Cards, Field, HUD, Modals, Buttons…' },
+          { label:'Card types', count:12, desc:'Run, Pass, Option, Rogue, Defense' },
+        ].map(item => (
+          <div key={item.label} style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, padding:'14px 16px' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--blitz-red)', lineHeight:1 }}>{item.count}</div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-primary)', marginTop:2 }}>{item.label}</div>
+            <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:3 }}>{item.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION: COLORS ────────────────────────────────────────────────────────
+function ColorSwatch({ name, value, desc }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:6, minWidth:100 }}>
+      <div style={{ width:'100%', height:48, borderRadius:8, background:value, border:'1px solid rgba(255,255,255,0.08)' }} />
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--rogue-purple-bright)', lineHeight:1.2 }}>{name}</div>
+      <div style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--text-muted)' }}>{value}</div>
+      {desc && <div style={{ fontSize:9, color:'var(--text-muted)', lineHeight:1.3 }}>{desc}</div>}
+    </div>
+  );
+}
+
+function SectionColors() {
+  const groups = [
+    {
+      title: 'Blitz FC — Red (Offense / Home)',
+      colors: [
+        { name:'--blitz-red',        value:'#D4222A', desc:'Primary brand red' },
+        { name:'--blitz-red-bright', value:'#FF3340', desc:'Highlights, glows' },
+        { name:'--blitz-red-dim',    value:'#8B1219', desc:'Borders, bg tints' },
+        { name:'--blitz-red-glow',   value:'rgba(212,34,42,0.35)', desc:'Box shadow glow' },
+        { name:'--blitz-red-subtle', value:'rgba(212,34,42,0.12)', desc:'Subtle bg fills' },
+      ]
+    },
+    {
+      title: 'Storm SC — Blue (Defense / Away)',
+      colors: [
+        { name:'--storm-blue',        value:'#1565C0', desc:'Primary brand blue' },
+        { name:'--storm-blue-bright', value:'#2979FF', desc:'Highlights' },
+        { name:'--storm-blue-dim',    value:'#0D3D7A', desc:'Borders, bg tints' },
+        { name:'--storm-blue-glow',   value:'rgba(21,101,192,0.35)', desc:'Box shadow' },
+        { name:'--storm-blue-subtle', value:'rgba(21,101,192,0.12)', desc:'Subtle bg fills' },
+      ]
+    },
+    {
+      title: 'Gold — Premium Moments',
+      colors: [
+        { name:'--gold',        value:'#E8A820', desc:'Touchdowns, rewards' },
+        { name:'--gold-bright', value:'#FFD045', desc:'Star ratings, emphasis' },
+        { name:'--gold-dim',    value:'#9A6A0A', desc:'Borders' },
+        { name:'--gold-glow',   value:'rgba(232,168,32,0.40)', desc:'Glow effects' },
+        { name:'--gold-subtle', value:'rgba(232,168,32,0.15)', desc:'DP badge bg' },
+      ]
+    },
+    {
+      title: 'Rogue — Special Cards',
+      colors: [
+        { name:'--rogue-purple',        value:'#7C3AED', desc:'Rogue card borders' },
+        { name:'--rogue-purple-bright', value:'#A855F7', desc:'Labels, highlights' },
+        { name:'--rogue-purple-glow',   value:'rgba(124,58,237,0.35)', desc:'Card glows' },
+        { name:'--rogue-purple-subtle', value:'rgba(124,58,237,0.15)', desc:'Subtle bg fills' },
+      ]
+    },
+    {
+      title: 'Neutrals / Backgrounds',
+      colors: [
+        { name:'--bg-void',    value:'#080A0C', desc:'Deepest bg' },
+        { name:'--bg-deep',    value:'#0D1117', desc:'App background' },
+        { name:'--bg-surface', value:'#141A22', desc:'Cards, panels' },
+        { name:'--bg-raised',  value:'#1C2533', desc:'Elevated surfaces' },
+        { name:'--bg-overlay', value:'#243040', desc:'Hover / selected' },
+        { name:'--bg-border',  value:'#2E3A4A', desc:'Borders, dividers' },
+      ]
+    },
+    {
+      title: 'Rarity System',
+      colors: [
+        { name:'--rarity-common',   value:'#6B7C8E', desc:'Common cards' },
+        { name:'--rarity-uncommon', value:'#22C55E', desc:'Uncommon' },
+        { name:'--rarity-rare',     value:'#E8A820', desc:'Rare (gold)' },
+        { name:'--rarity-rogue',    value:'#A855F7', desc:'Rogue (purple)' },
+      ]
+    },
+  ];
+
+  return (
+    <div className="ds-section" id="colors">
+      <div className="section-label">Tokens</div>
+      <div className="section-title">Colors</div>
+      {groups.map(g => (
+        <div key={g.title} style={{ marginBottom:32 }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>{g.title}</div>
+          <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+            {g.colors.map(c => <ColorSwatch key={c.name} {...c} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── SECTION: TYPOGRAPHY ────────────────────────────────────────────────────
+function SectionTypography() {
+  const scale = [
+    { name:'--text-hero', value:'72px', use:'Touchdown!, Score (screen-wide moments)' },
+    { name:'--text-4xl',  value:'48px', use:'Modal headlines' },
+    { name:'--text-3xl',  value:'36px', use:'Score numbers, large stats' },
+    { name:'--text-2xl',  value:'28px', use:'Section headers, team names' },
+    { name:'--text-xl',   value:'22px', use:'Card power (large)' },
+    { name:'--text-lg',   value:'18px', use:'HUD labels, quarter/time' },
+    { name:'--text-md',   value:'16px', use:'Body text (large)' },
+    { name:'--text-base', value:'14px', use:'Body text (default)' },
+    { name:'--text-sm',   value:'12px', use:'Labels, card subtypes' },
+    { name:'--text-xs',   value:'10px', use:'Badges, captions' },
+  ];
+
+  return (
+    <div className="ds-section" id="typography">
+      <div className="section-label">Tokens</div>
+      <div className="section-title">Typography</div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:32 }}>
+        {[
+          { varName:'--font-display', name:'Barlow Condensed', weights:'700–900', use:'All headlines, scores, card names, HUD, buttons. Dense, impactful, sports-feel.' },
+          { varName:'--font-body',    name:'Barlow',           weights:'400–600', use:'Body text, labels, descriptions, tendencies. Readable at small sizes.' },
+        ].map(f => (
+          <div key={f.varName} style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, padding:'16px 18px' }}>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:11, color:'var(--rogue-purple-bright)', marginBottom:8 }}>{f.varName}</div>
+            <div style={{ fontFamily: f.varName === '--font-display' ? 'var(--font-display)' : 'var(--font-body)', fontSize:32, fontWeight: f.varName === '--font-display' ? 800 : 400, color:'var(--text-primary)', lineHeight:1, marginBottom:6 }}>
+              {f.name}
+            </div>
+            <div style={{ fontFamily: f.varName === '--font-display' ? 'var(--font-display)' : 'var(--font-body)', fontSize:14, color:'var(--text-secondary)', marginBottom:8 }}>
+              Aa Bb Cc · 0123456789 · &amp; ! ?
+            </div>
+            <div style={{ display:'flex', gap:6, marginBottom:6, flexWrap:'wrap' }}>
+              {f.weights.split('–').length > 1
+                ? [400,500,600,700,800,900].filter(w => w >= parseInt(f.weights) && w <= parseInt(f.weights.split('–')[1]))
+                  .concat(f.varName === '--font-display' ? [700,800,900] : [400,500,600])
+                  .filter((v,i,a)=>a.indexOf(v)===i)
+                  .map(w => (
+                    <div key={w} style={{ fontFamily: f.varName === '--font-display' ? 'var(--font-display)' : 'var(--font-body)', fontWeight:w, fontSize:12, color:'var(--text-secondary)', background:'var(--bg-raised)', padding:'2px 8px', borderRadius:4 }}>
+                      {w}
+                    </div>
+                  ))
+                : null}
+            </div>
+            <div style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.4 }}>{f.use}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:12 }}>TYPE SCALE</div>
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, overflow:'hidden' }}>
+        <table className="spec-table">
+          <thead><tr><th>Token</th><th>Size</th><th>Preview</th><th>Usage</th></tr></thead>
+          <tbody>
+            {scale.map(s => (
+              <tr key={s.name}>
+                <td>{s.name}</td>
+                <td style={{ color:'var(--text-primary)' }}>{s.value}</td>
+                <td><span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize: Math.min(parseInt(s.value),28), color:'var(--text-primary)', whiteSpace:'nowrap' }}>Snap</span></td>
+                <td>{s.use}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION: SPACING ───────────────────────────────────────────────────────
+function SectionSpacing() {
+  const spaces = [1,2,3,4,5,6,8,10,12,16].map(n => ({ name:`--space-${n}`, value:`${n*4}px` }));
+  const radii = [
+    { name:'--radius-sm',  value:'4px',   use:'Buttons, small chips' },
+    { name:'--radius-md',  value:'8px',   use:'Playmaker cards, filters' },
+    { name:'--radius-lg',  value:'12px',  use:'Play cards, panels' },
+    { name:'--radius-xl',  value:'16px',  use:'Modal dialogs' },
+    { name:'--radius-2xl', value:'24px',  use:'Large overlays' },
+    { name:'--radius-pill','value':'999px', use:'Badges, DP chip' },
+  ];
+  return (
+    <div className="ds-section" id="spacing">
+      <div className="section-label">Tokens</div>
+      <div className="section-title">Spacing & Radius</div>
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>SPACING SCALE (4px base)</div>
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:32 }}>
+        {spaces.map(s => (
+          <div key={s.name} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+            <div style={{ width: parseInt(s.value), height: parseInt(s.value), background:'var(--blitz-red)', opacity:0.6, borderRadius:2, minWidth:4, minHeight:4 }} />
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--text-muted)', textAlign:'center' }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>BORDER RADIUS</div>
+      <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+        {radii.map(r => (
+          <div key={r.name} style={{ display:'flex', flexDirection:'column', gap:6, minWidth:80 }}>
+            <div style={{ width:56, height:40, background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:r.value }} />
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--rogue-purple-bright)' }}>{r.name}</div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:9, color:'var(--text-muted)' }}>{r.value}</div>
+            <div style={{ fontSize:9, color:'var(--text-muted)' }}>{r.use}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION: CARDS ──────────────────────────────────────────────────────────
+function SectionCards() {
+  const [selCard, setSelCard] = React.useState(null);
+  return (
+    <div className="ds-section" id="cards">
+      <div className="section-label">Components</div>
+      <div className="section-title">Play Cards</div>
+
+      <p style={{ fontSize:13, color:'var(--text-secondary)', maxWidth:580, lineHeight:1.6, marginBottom:24 }}>
+        The central game object. Cards have a role (offense/defense/rogue), rarity tier, power number, and route diagram SVG. Offense cards use <code>--blitz-red</code> borders; defense uses <code>--storm-blue</code>; rogue uses <code>--rogue-purple</code>.
+      </p>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>OFFENSE CARDS</div>
+      <div className="component-frame" style={{ marginBottom:20 }}>
+        {[
+          { id:'c1', name:'PASS M',  subtype:'SPOT',  power:17, basePower:12, rarity:'RARE',   copies:2, type:'PASS' },
+          { id:'c2', name:'RUN IN',  subtype:'POWER', power:14, basePower:14, rarity:'common', copies:2, type:'RUN' },
+          { id:'c3', name:'OPTION',  subtype:'READ',  power:13, basePower:13, rarity:'common', copies:2, type:'OPTION' },
+          { id:'c4', name:'PASS S',  subtype:'SLANT', power:13, basePower:13, rarity:'common', copies:2, type:'PASS' },
+          { id:'c5', name:'PASS D',  subtype:'DEEP',  power:18, basePower:16, rarity:'RARE',   copies:2, type:'PASS' },
+        ].map(c => (
+          <PlayCard key={c.id} card={c} role="offense" selected={selCard?.id===c.id} onClick={() => setSelCard(c)} />
+        ))}
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>DEFENSE CARDS</div>
+      <div className="component-frame" style={{ marginBottom:20 }}>
+        {[
+          { id:'d1', name:'ZONE',    subtype:'COVER 3', power:15, basePower:12, rarity:'common', copies:2, type:'DEFENSE' },
+          { id:'d2', name:'BLITZ',   subtype:'BLITZ',   power:16, basePower:14, rarity:'common', copies:2, type:'DEFENSE' },
+          { id:'d3', name:'MAN',     subtype:'MAN',     power:14, basePower:14, rarity:'common', copies:2, type:'DEFENSE' },
+          { id:'d4', name:'RUN D',   subtype:'RUN D',   power:15, basePower:15, rarity:'common', copies:2, type:'DEFENSE' },
+          { id:'d5', name:'PREVENT', subtype:'PREVENT', power:12, basePower:12, rarity:'common', copies:2, type:'DEFENSE' },
+        ].map(c => (
+          <PlayCard key={c.id} card={c} role="defense" selected={selCard?.id===c.id} onClick={() => setSelCard(c)} />
+        ))}
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>ROGUE CARDS</div>
+      <div className="component-frame" style={{ marginBottom:28 }}>
+        <PlayCard card={sampleRogue} role="rogue" />
+        <PlayCard card={sampleHail} role="rogue" />
+        <PlayCard card={sampleOffCard} role="offense" selected />
+        <div style={{ fontSize:11, color:'var(--text-muted)', padding:'8px 0', alignSelf:'center' }}>← Selected state (gold border + glow)</div>
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>CARD ANATOMY</div>
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, overflow:'hidden' }}>
+        <table className="spec-table">
+          <thead><tr><th>Layer</th><th>Description</th><th>Token / Value</th></tr></thead>
+          <tbody>
+            {[
+              ['Rarity bar', 'Top edge color strip (2px)', 'rarity-common / rare / rogue'],
+              ['Card border', 'Role-based 2px border', 'card-offense / defense / rogue'],
+              ['Background', 'Dark surface', '--bg-surface (#141A22)'],
+              ['Name', 'Barlow Condensed 700 13px', 'text-primary, uppercase'],
+              ['Subtype', 'Barlow 400 10px', 'text-secondary, uppercase'],
+              ['Route SVG', 'Procedural diagram on --bg-deep', 'Custom SVG per card type'],
+              ['Power number', 'Barlow Condensed 900 32px', 'text-primary'],
+              ['Base label', 'Barlow 400 9px', 'text-muted'],
+              ['Copy badge', 'Bottom-right ×N', 'text-muted 9px'],
+              ['Selected state', 'Gold border + glow', '--gold + --glow-gold'],
+              ['Hover state', 'translateY(-2px) + role glow', 'CSS transform + box-shadow'],
+            ].map(r => (
+              <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td><code>{r[2]}</code></td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION: BUTTONS ───────────────────────────────────────────────────────
+function SectionButtons() {
+  const variants = ['primary','secondary','blue','gold','danger','ghost'];
+  const sizes = ['sm','md','lg'];
+  return (
+    <div className="ds-section" id="buttons">
+      <div className="section-label">Components</div>
+      <div className="section-title">Buttons & Badges</div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>BUTTON VARIANTS</div>
+      <div className="component-frame" style={{ marginBottom:24 }}>
+        {variants.map(v => <SCButton key={v} variant={v}>{v}</SCButton>)}
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>BUTTON SIZES</div>
+      <div className="component-frame" style={{ marginBottom:24 }}>
+        {sizes.map(s => <SCButton key={s} size={s} variant="primary">Size {s}</SCButton>)}
+        <SCButton variant="primary" size="md" disabled>Disabled</SCButton>
+        <SCButton variant="primary" size="md" icon="⚡">With Icon</SCButton>
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>BADGES & CHIPS</div>
+      <div className="component-frame" style={{ marginBottom:24 }}>
+        <DPBadge value={32} />
+        <DPBadge value={5} size="sm" />
+        <DPBadge value={100} size="lg" />
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+          {[['RARE','var(--rarity-rare)'],['ROGUE','var(--rarity-rogue)'],['OFFENSE','var(--blitz-red)'],['DEFENSE','var(--storm-blue-bright)'],['FIRST DOWN','var(--success-green)'],['AT CAP','var(--blitz-red)']].map(([l,c]) => (
+            <div key={l} className="pill" style={{ background:`${c}22`, border:`1px solid ${c}66`, color:c }}>{l}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>ROLE BADGES</div>
+      <div className="component-frame">
+        <RoleBadge role="offense" isYou={true} />
+        <RoleBadge role="offense" />
+        <RoleBadge role="defense" isYou={true} />
+        <RoleBadge role="defense" />
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION: FIELD ─────────────────────────────────────────────────────────
+function SectionField() {
+  const [ballPos, setBallPos] = React.useState(42);
+  return (
+    <div className="ds-section" id="field">
+      <div className="section-label">Components</div>
+      <div className="section-title">Field Strip & HUD</div>
+
+      <p style={{ fontSize:13, color:'var(--text-secondary)', maxWidth:580, lineHeight:1.6, marginBottom:24 }}>
+        The field strip is a top-down yard marker view showing ball position (0–100). Blitz FC drives toward 100; Storm SC drives toward 0. The gold ball marker transitions smoothly.
+      </p>
+
+      <div style={{ marginBottom:16 }}>
+        <FieldStrip ballPosition={ballPos} height={80} />
+      </div>
+      <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:28 }}>
+        <span style={{ fontSize:11, color:'var(--text-muted)' }}>Ball position:</span>
+        <input type="range" min={0} max={100} value={ballPos} onChange={e=>setBallPos(+e.target.value)}
+          style={{ width:200, accentColor:'var(--gold)' }} />
+        <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--gold)', width:30 }}>{ballPos}</span>
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>FIELD TOKENS</div>
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, overflow:'hidden' }}>
+        <table className="spec-table">
+          <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+          <tbody>
+            {[
+              ['--field-bg',         '#0F2A0F',                    'Field background'],
+              ['--field-end-red',    'rgba(212,34,42,0.25)',        'Red end zone tint'],
+              ['--field-end-blue',   'rgba(21,101,192,0.25)',       'Blue end zone tint'],
+              ['--field-line',       'rgba(255,255,255,0.15)',      'Yard lines'],
+              ['--yard-marker',      'rgba(255,255,255,0.5)',       'Yard number text'],
+              ['--field-stripe-even','rgba(255,255,255,0.03)',      'Alternating stripe even'],
+            ].map(r => (
+              <tr key={r[0]}><td>{r[0]}</td><td style={{color:'var(--text-secondary)'}}>{r[1]}</td><td>{r[2]}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── SECTION: MODALS ────────────────────────────────────────────────────────
+function SectionModals() {
+  const [showTD, setShowTD] = React.useState(false);
+  const [showINT, setShowINT] = React.useState(false);
+
+  const REWARDS = [
+    { id:'r1', type:'ADD CARD',   title:'HAIL MARY',  description:'Add Hail Mary to your deck.',                rarity:'ROGUE' },
+    { id:'r2', type:'GAME BOOST', title:'+2',          description:'+2 Power to all Offensive cards this game.', value:2 },
+    { id:'r3', type:'PLAYMAKER',  title:'CLUTCH MODE', description:'Your Playmaker gets +0.25× Multiplier.'                    },
+  ];
+
+  return (
+    <div className="ds-section" id="modals">
+      <div className="section-label">Components</div>
+      <div className="section-title">Event Modals</div>
+
+      <p style={{ fontSize:13, color:'var(--text-secondary)', maxWidth:580, lineHeight:1.6, marginBottom:24 }}>
+        Modals interrupt gameplay for high-stakes moments: touchdowns, turnovers, fourth-down decisions. They use <code>backdropFilter: blur(4px)</code> and <code>--z-modal: 1000</code>.
+      </p>
+
+      <div className="component-frame" style={{ gap:12, marginBottom:24 }}>
+        <SCButton variant="gold" onClick={() => setShowTD(true)}>Preview Touchdown Modal</SCButton>
+        <SCButton variant="danger" onClick={() => setShowINT(true)}>Preview Interception Modal</SCButton>
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>REWARD CARDS (inside TD modal)</div>
+      <div style={{ display:'flex', gap:12, marginBottom:28, flexWrap:'wrap' }}>
+        {REWARDS.map(r => {
+          const typeColors = { 'ADD CARD':'var(--rogue-purple)', 'GAME BOOST':'var(--gold)', PLAYMAKER:'var(--storm-blue)' };
+          const color = typeColors[r.type];
+          return (
+            <div key={r.id} style={{ flex:'1 1 150px', maxWidth:200, background:'var(--bg-raised)', border:`2px solid ${color}44`, borderRadius:'var(--radius-lg)', padding:'12px 10px' }}>
+              <div style={{ fontSize:9, color, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>{r.type}</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:'var(--text-primary)', lineHeight:1, marginBottom:8 }}>{r.title}</div>
+              <div style={{ height:48, background:'var(--bg-surface)', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                {r.type === 'GAME BOOST' && <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:30, color:'var(--gold)' }}>+{r.value}</div>}
+                {r.type === 'ADD CARD' && <svg width={36} height={36} viewBox="0 0 40 40"><circle cx={20} cy={20} r={16} stroke="var(--rogue-purple)" strokeWidth={2} fill="rgba(168,85,247,0.15)"/><circle cx={20} cy={20} r={6} fill="var(--rogue-purple)" opacity={0.7}/></svg>}
+                {r.type === 'PLAYMAKER' && <svg width={36} height={36} viewBox="0 0 40 40"><ellipse cx={20} cy={11} rx={7} ry={7} fill="var(--storm-blue)" opacity={0.9}/><path d="M 10 36 L 12 20 L 20 17 L 28 20 L 30 36" fill="var(--storm-blue)" opacity={0.7}/></svg>}
+              </div>
+              <div style={{ fontSize:10, color:'var(--text-secondary)', lineHeight:1.4 }}>{r.description}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)', letterSpacing:'0.06em', marginBottom:14 }}>MODAL SPEC</div>
+      <div style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, overflow:'hidden' }}>
+        <table className="spec-table">
+          <thead><tr><th>Property</th><th>Value</th></tr></thead>
+          <tbody>
+            {[
+              ['Backdrop',   'rgba(0,0,0,0.85) + blur(4px)'],
+              ['Z-index',    '--z-modal (1000)'],
+              ['Width',      'min(520px, 92vw)'],
+              ['Animation',  'slideUp 350ms ease-snap'],
+              ['Border',     '1px solid --bg-border'],
+              ['Radius',     '--radius-xl (16px)'],
+              ['Box shadow', '--shadow-elevated'],
+              ['TD header glow', 'linear-gradient gold-tinted bg'],
+            ].map(r => (
+              <tr key={r[0]}><td>{r[0]}</td><td style={{color:'var(--text-secondary)'}}>{r[1]}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Touchdown Modal */}
+      {showTD && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(4px)' }}>
+          <div style={{ width:'min(520px, 92vw)', background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:16, overflow:'hidden', boxShadow:'0 16px 48px rgba(0,0,0,0.8)', animation:'slideUp 350ms cubic-bezier(0.175,0.885,0.32,1.275)' }}>
+            <div style={{ padding:'20px 24px 16px', textAlign:'center', borderBottom:'1px solid var(--bg-border)', background:'linear-gradient(180deg, rgba(232,168,32,0.1) 0%, transparent 100%)' }}>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:44, color:'var(--gold)', letterSpacing:'0.04em', textShadow:'0 0 30px rgba(232,168,32,0.5)', lineHeight:1 }}>TOUCHDOWN!</div>
+              <div style={{ fontSize:14, color:'var(--text-secondary)', marginTop:6 }}>BLITZ FC SCORES! · Pick 1 Reward</div>
+            </div>
+            <div style={{ display:'flex', gap:12, padding:'16px 20px' }}>
+              {REWARDS.map(r => {
+                const typeColors = { 'ADD CARD':'var(--rogue-purple)', 'GAME BOOST':'var(--gold)', PLAYMAKER:'var(--storm-blue)' };
+                const color = typeColors[r.type];
+                return (
+                  <div key={r.id} style={{ flex:1, background:'var(--bg-raised)', border:`2px solid ${color}44`, borderRadius:12, padding:'12px 10px', cursor:'pointer' }}>
+                    <div style={{ fontSize:9, color, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>{r.type}</div>
+                    <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:'var(--text-primary)', lineHeight:1, marginBottom:8 }}>{r.title}</div>
+                    <div style={{ height:52, background:'var(--bg-surface)', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                      {r.type === 'GAME BOOST' && <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:36, color:'var(--gold)' }}>+{r.value}</div>}
+                      {r.type === 'ADD CARD' && <svg width={36} height={36} viewBox="0 0 40 40"><circle cx={20} cy={20} r={16} stroke="var(--rogue-purple)" strokeWidth={2} fill="rgba(168,85,247,0.15)"/><circle cx={20} cy={20} r={6} fill="var(--rogue-purple)" opacity={0.7}/></svg>}
+                      {r.type === 'PLAYMAKER' && <svg width={36} height={36} viewBox="0 0 40 40"><ellipse cx={20} cy={11} rx={7} ry={7} fill="var(--storm-blue)" opacity={0.9}/><path d="M 10 36 L 12 20 L 20 17 L 28 20 L 30 36" fill="var(--storm-blue)" opacity={0.7}/></svg>}
+                    </div>
+                    <div style={{ fontSize:10, color:'var(--text-secondary)', lineHeight:1.4 }}>{r.description}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ padding:'0 20px 20px' }}>
+              <button onClick={() => setShowTD(false)} style={{ width:'100%', padding:'12px', background:'var(--blitz-red)', border:'none', color:'white', fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, letterSpacing:'0.08em', borderRadius:6, cursor:'pointer' }}>
+                CLAIM REWARD →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Interception Modal */}
+      {showINT && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(4px)' }}>
+          <div style={{ width:'min(380px, 90vw)', background:'var(--bg-surface)', border:'1px solid var(--blitz-red)', borderRadius:16, overflow:'hidden', boxShadow:'0 0 32px rgba(212,34,42,0.3)', animation:'slideUp 350ms cubic-bezier(0.175,0.885,0.32,1.275)', textAlign:'center', padding:'32px 24px 24px' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:36, color:'var(--blitz-red)', letterSpacing:'0.06em', lineHeight:1, marginBottom:8 }}>INTERCEPTED!</div>
+            <div style={{ fontSize:13, color:'var(--text-secondary)', marginBottom:20 }}>Storm SC takes possession · 15-yard return</div>
+            <div style={{ background:'var(--bg-raised)', borderRadius:12, padding:'14px 20px', marginBottom:20, display:'inline-block' }}>
+              <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.06em', marginBottom:4 }}>POSSESSION FLIPS TO</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--storm-blue-bright)' }}>STORM SC — OFFENSE</div>
+            </div>
+            <button onClick={() => setShowINT(false)} style={{ width:'100%', padding:'12px', background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, letterSpacing:'0.06em', borderRadius:6, cursor:'pointer' }}>CONTINUE →</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── SECTION: SCREENS ───────────────────────────────────────────────────────
+function SectionScreens() {
+  return (
+    <div className="ds-section" id="screens">
+      <div className="section-label">Screens</div>
+      <div className="section-title">Screen Inventory</div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(280px,1fr))', gap:14 }}>
+        {[
+          { name:'Gameplay Screen',     file:'Snap Count – Gameplay.html',    desc:'Main in-game view: scoreboard, field strip, matchup display, card hand, card selection, snap resolution.', status:'Built' },
+          { name:'Locker Room',         file:'Snap Count – Locker Room.html', desc:'Post-game management hub: deck builder, draft, upgrades, playmaker recruitment.', status:'Built' },
+          { name:'Touchdown Modal',     file:'Snap Count – Gameplay.html',    desc:'In-game event: pick 1 of 3 reward cards after scoring. Triggered from gameplay.', status:'Built' },
+          { name:'Interception Modal',  file:'Snap Count – Gameplay.html',    desc:'Turnover event: possession flip notification with return yards.', status:'Built' },
+          { name:'Season Map',          file:'—',                              desc:'5-node linear map between games. Shows win/loss nodes, current position, lock icons for future games.', status:'Planned' },
+          { name:'Coin Toss',           file:'—',                              desc:'Pre-game choice: offense or defense to open. Sets initial role.', status:'Planned' },
+          { name:'Rogue Death Modal',   file:'—',                              desc:'Post-loss event if margin ≥14: strips 1–3 recently drafted cards from roster.', status:'Planned' },
+          { name:'Field Goal Decision', file:'—',                              desc:'4th down alternative: attempt field goal. Short = auto; long = probabilistic roll.', status:'Planned' },
+        ].map(s => (
+          <div key={s.name} style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:10, padding:'14px 16px' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-primary)' }}>{s.name}</div>
+              <div className="pill" style={{ background: s.status === 'Built' ? 'rgba(34,197,94,0.15)' : 'rgba(46,58,74,0.8)', border:`1px solid ${s.status === 'Built' ? 'rgba(34,197,94,0.4)' : 'var(--bg-border)'}`, color: s.status === 'Built' ? 'var(--success-green)' : 'var(--text-muted)' }}>
+                {s.status}
+              </div>
+            </div>
+            <div style={{ fontFamily:'var(--font-mono)', fontSize:10, color:'var(--rogue-purple-bright)', marginBottom:6 }}>{s.file}</div>
+            <div style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.5 }}>{s.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── MATCHUP MATRIX SECTION ─────────────────────────────────────────────────
+function SectionMatrix() {
+  const offTypes = ['Run In','Run Out','Pass S','Pass M','Pass D','Option','Rogue'];
+  const defTypes = ['Run D','Zone','Man','Blitz','Prevent'];
+  const matrix = {
+    'Run In':  [0,4,3,1,3],
+    'Run Out': [-2,4,2,1,2],
+    'Pass S':  [3,1,-2,3,2],
+    'Pass M':  [4,0,1,2,2],
+    'Pass D':  [5,0,2,4,0],
+    'Option':  [1,2,1,1,2],
+    'Rogue':   [0,0,0,0,0],
+  };
+  return (
+    <div className="ds-section">
+      <div className="section-label">Game Rules</div>
+      <div className="section-title">Matchup Matrix</div>
+      <p style={{ fontSize:13, color:'var(--text-secondary)', maxWidth:580, lineHeight:1.6, marginBottom:20 }}>
+        Modifier applied to offensive <code>final_power</code> based on card type matchup. Positive = offense advantage. Used in UI hints when a card is selected.
+      </p>
+      <div style={{ overflowX:'auto' }}>
+        <table className="spec-table" style={{ minWidth:380 }}>
+          <thead>
+            <tr>
+              <th style={{ minWidth:80 }}>OFF / DEF</th>
+              {defTypes.map(d => <th key={d} style={{ color:'var(--storm-blue-bright)' }}>{d}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {offTypes.map(off => (
+              <tr key={off}>
+                <td style={{ color:'var(--blitz-red-bright)', fontWeight:600 }}>{off}</td>
+                {matrix[off].map((val,i) => (
+                  <td key={i} style={{ textAlign:'center', color: val > 2 ? 'var(--success-green)' : val < 0 ? 'var(--blitz-red)' : 'var(--text-muted)', fontWeight: Math.abs(val)>=3 ? 700 : 400, fontFamily:'var(--font-display)' }}>
+                    {val > 0 ? `+${val}` : val}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ── NAV ────────────────────────────────────────────────────────────────────
+function TopNav({ active, onNav }) {
+  const sections = [
+    { id:'overview', label:'Overview' },
+    { id:'colors',   label:'Colors' },
+    { id:'typography',label:'Typography' },
+    { id:'spacing',  label:'Spacing' },
+    { id:'cards',    label:'Cards' },
+    { id:'buttons',  label:'Buttons' },
+    { id:'field',    label:'Field' },
+    { id:'modals',   label:'Modals' },
+    { id:'screens',  label:'Screens' },
+  ];
+  return (
+    <div style={{ position:'sticky', top:0, zIndex:100, background:'rgba(13,17,23,0.95)', backdropFilter:'blur(8px)', borderBottom:'1px solid var(--bg-border)', padding:'0 24px', display:'flex', gap:2, overflowX:'auto' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginRight:20, flexShrink:0, padding:'10px 0' }}>
+        <div style={{ width:24, height:24, borderRadius:4, background:'rgba(212,34,42,0.3)', border:'1.5px solid var(--blitz-red)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontWeight:900, fontSize:12, color:'var(--blitz-red)' }}>B</div>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-primary)', letterSpacing:'0.04em' }}>SNAP COUNT <span style={{ color:'var(--text-muted)', fontWeight:400 }}>Design System</span></div>
+      </div>
+      {sections.map(s => (
+        <button key={s.id} className={`nav-link ${active===s.id?'active':''}`}
+          onClick={() => { document.getElementById(s.id)?.scrollIntoView({behavior:'smooth'}); onNav(s.id); }}>
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── APP ────────────────────────────────────────────────────────────────────
+function DesignSystem() {
+  const [activeNav, setActiveNav] = React.useState('overview');
+
+  // Intersection observer for active nav
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        entries.forEach(e => { if (e.isIntersecting) setActiveNav(e.target.id); });
+      },
+      { threshold: 0.3 }
+    );
+    SECTION_IDS.forEach(id => { const el = document.getElementById(id); if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div>
+      <TopNav active={activeNav} onNav={setActiveNav} />
+      <div style={{ maxWidth:960, margin:'0 auto' }}>
+        <SectionOverview />
+        <SectionColors />
+        <SectionTypography />
+        <SectionSpacing />
+        <SectionCards />
+        <SectionButtons />
+        <SectionField />
+        <SectionModals />
+        <SectionScreens />
+        <SectionMatrix />
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<DesignSystem />);
+</script>
+</body>
+</html>

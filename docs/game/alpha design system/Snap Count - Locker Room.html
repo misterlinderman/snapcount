@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snap Count — Locker Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="snap-count-tokens.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: var(--bg-void); color: var(--text-primary); font-family: var(--font-body); overflow: hidden; }
+  #root { width: 100%; height: 100%; }
+  button { font-family: var(--font-display); cursor: pointer; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 2px; }
+
+  @keyframes slideUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+  @keyframes shimmer { 0%{ background-position:-200% 0; } 100%{ background-position:200% 0; } }
+
+  .locker-room-bg {
+    background:
+      radial-gradient(ellipse 60% 40% at 30% 60%, rgba(212,34,42,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 70% 30%, rgba(21,101,192,0.04) 0%, transparent 70%),
+      var(--bg-deep);
+  }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+  .tab-btn { background: transparent; border: none; padding: 7px 14px; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; border-bottom: 2px solid transparent; transition: all 150ms; }
+  .tab-btn.active { color: var(--text-primary); border-bottom-color: var(--blitz-red); }
+  .tab-btn:not(.active) { color: var(--text-muted); }
+  .tab-btn:not(.active):hover { color: var(--text-secondary); }
+  .filter-chip { background: var(--bg-raised); border: 1px solid var(--bg-border); border-radius: var(--radius-pill); padding: 4px 10px; font-size: 11px; font-family: var(--font-body); color: var(--text-secondary); cursor: pointer; transition: all 120ms; white-space: nowrap; }
+  .filter-chip.active { background: var(--blitz-red-subtle); border-color: var(--blitz-red); color: var(--text-primary); }
+  .filter-chip:hover:not(.active) { border-color: var(--text-muted); color: var(--text-primary); }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-left: 3px solid transparent; cursor: pointer; transition: all 120ms; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+  .nav-item:hover { background: var(--bg-subtle); }
+  .nav-item.active { background: var(--bg-overlay); border-left-color: var(--blitz-red); }
+  .draft-card { background: var(--bg-surface); border: 1px solid var(--bg-border); border-radius: var(--radius-lg); padding: 12px; cursor: pointer; transition: all 180ms; }
+  .draft-card:hover { border-color: var(--gold); background: var(--bg-raised); transform: translateY(-2px); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="snap-count-components.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+
+const OFF_DECK = [
+  { id:'pd1', name:'PASS D',   subtype:'DEEP',   power:18, basePower:16, rarity:'RARE',   copies:2, type:'PASS' },
+  { id:'pm1', name:'PASS M',   subtype:'SPOT',   power:17, basePower:12, rarity:'RARE',   copies:2, type:'PASS' },
+  { id:'ri1', name:'RUN IN',   subtype:'POWER',  power:16, basePower:14, rarity:'common', copies:3, type:'RUN'  },
+  { id:'op1', name:'OPTION',   subtype:'READ',   power:15, basePower:13, rarity:'common', copies:3, type:'OPTION'},
+  { id:'ro1', name:'RUN OUT',  subtype:'SWEEP',  power:14, basePower:14, rarity:'common', copies:2, type:'RUN'  },
+  { id:'ps1', name:'PASS S',   subtype:'SLANT',  power:13, basePower:13, rarity:'common', copies:2, type:'PASS' },
+  { id:'ri2', name:'RUN IN',   subtype:'ISO',    power:13, basePower:13, rarity:'common', copies:2, type:'RUN'  },
+  { id:'op2', name:'OPTION',   subtype:'TRIPLE', power:12, basePower:12, rarity:'common', copies:1, type:'OPTION'},
+  { id:'fs1', name:'FILM STUDY',subtype:'ROGUE', power:0,  basePower:0,  rarity:'ROGUE',  copies:1, type:'ROGUE', special:'reveal' },
+  { id:'hm1', name:'HAIL MARY',subtype:'ROGUE',  power:'?',basePower:0,  rarity:'ROGUE',  copies:1, type:'ROGUE', special:'hailmary' },
+];
+
+const DEF_DECK = [
+  { id:'z1', name:'ZONE',      subtype:'COVER 3',  power:16, basePower:14, rarity:'RARE',   copies:2, type:'DEFENSE' },
+  { id:'rd1',name:'RUN D',     subtype:'RUN D',    power:15, basePower:15, rarity:'common', copies:3, type:'DEFENSE' },
+  { id:'m1', name:'MAN',       subtype:'MAN',      power:14, basePower:14, rarity:'common', copies:2, type:'DEFENSE' },
+  { id:'b1', name:'BLITZ',     subtype:'BLITZ',    power:16, basePower:14, rarity:'common', copies:2, type:'DEFENSE' },
+  { id:'p1', name:'PREVENT',   subtype:'PREVENT',  power:12, basePower:12, rarity:'common', copies:2, type:'DEFENSE' },
+];
+
+const DRAFT_OFFERS = [
+  { id:'dr1', name:'PASS D',    subtype:'DEEP',   power:18, basePower:16, rarity:'RARE',   cost:8,  type:'PASS' },
+  { id:'dr2', name:'SPEED RUN', subtype:'SWEEP',  power:15, basePower:15, rarity:'common', cost:4,  type:'RUN'  },
+  { id:'dr3', name:'HAIL MARY', subtype:'ROGUE',  power:'?',basePower:0,  rarity:'ROGUE',  cost:12, type:'ROGUE', special:'hailmary' },
+  { id:'dr4', name:'BLITZ',     subtype:'BLITZ',  power:17, basePower:14, rarity:'RARE',   cost:7,  type:'DEFENSE' },
+  { id:'dr5', name:'ZONE 2',    subtype:'COVER 3',power:14, basePower:14, rarity:'common', cost:4,  type:'DEFENSE' },
+];
+
+const UPGRADE_OFFERS = [
+  { id:'up1', fromName:'RUN IN POWER', toName:'RUN IN POWER+', powerGain:3, cost:10, type:'RUN' },
+  { id:'up2', fromName:'PASS M SPOT',  toName:'PASS M SPOT+',  powerGain:4, cost:15, type:'PASS' },
+  { id:'up3', fromName:'ZONE COVER 3', toName:'ZONE ELITE',    powerGain:5, cost:18, type:'DEFENSE' },
+];
+
+const PLAYMAKERS = [
+  { id:'qb1', position:'QB', name:'J. Hawkins', multiplier:1.25, affinities:['PASS','OPTION'], role:'offense', owned:true },
+  { id:'wr1', position:'WR', name:'T. Green',   multiplier:1.40, affinities:['PASS'],          role:'offense', owned:false, cost:20 },
+  { id:'rb1', position:'RB', name:'M. Davis',   multiplier:1.35, affinities:['RUN','OPTION'],  role:'offense', owned:false, cost:18 },
+  { id:'lb1', position:'LB', name:'B. Stone',   multiplier:1.30, affinities:['RUN D','BLITZ'], role:'defense', owned:true },
+  { id:'cb1', position:'CB', name:'R. Willis',  multiplier:1.45, affinities:['MAN','ZONE'],    role:'defense', owned:false, cost:22 },
+];
+
+const DETAIL_CARD = {
+  id:'pm1', name:'PASS M', subtype:'SPOT', power:17, basePower:12, rarity:'RARE', copies:2, type:'PASS',
+  description:'Good against Zone and Blitz defenses.',
+  synergy: { position:'QB', description:'+15% Power with QB playmaker' },
+  vsDefense: { 'RUN D':4, 'ZONE':0, 'MAN':1, 'BLITZ':2, 'PREVENT':2 },
+  upgradeCost: 15,
+};
+
+// ── SUB-COMPONENTS ────────────────────────────────────────────────────────
+
+function LockerSidebar({ activeSection, onSelect, dp }) {
+  const sections = [
+    { id:'deck',      icon:'📋', label:'DECK MANAGEMENT', desc:'Edit your offensive and defensive decks.' },
+    { id:'draft',     icon:'🎴', label:'DRAFT',           desc:"Draft new cards for your roster." },
+    { id:'upgrades',  icon:'⬆',  label:'UPGRADES',        desc:'Upgrade your existing cards.' },
+    { id:'playmakers',icon:'🏃', label:'RECRUIT PLAYMAKERS',desc:'Recruit and manage your playmakers.' },
+  ];
+  return (
+    <div style={{ width:200, background:'var(--bg-surface)', borderRight:'1px solid var(--bg-border)', display:'flex', flexDirection:'column', flexShrink:0 }}>
+      {/* Team logo area */}
+      <div style={{ padding:'20px 16px 16px', borderBottom:'1px solid var(--bg-border)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+          <div style={{ width:40, height:40, borderRadius:8, background:'rgba(212,34,42,0.2)', border:'2px solid var(--blitz-red)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:'var(--blitz-red)' }}>B</div>
+          <div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-primary)' }}>BLITZ FC</div>
+            <div style={{ fontSize:10, color:'var(--text-muted)' }}>Season 1 · Week 2</div>
+          </div>
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6, background:'var(--gold-subtle)', border:'1px solid var(--gold-dim)', borderRadius:20, padding:'5px 10px' }}>
+          <span style={{ fontSize:12, color:'var(--gold)' }}>⬡</span>
+          <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--gold)' }}>DRAFT POINTS</span>
+          <span style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:18, color:'var(--gold)', marginLeft:'auto' }}>{dp}</span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <div style={{ flex:1, overflowY:'auto', padding:'8px 0' }}>
+        {sections.map(s => (
+          <div key={s.id} className={`nav-item ${activeSection===s.id?'active':''}`} onClick={() => onSelect(s.id)}>
+            <span style={{ fontSize:16, width:20, textAlign:'center' }}>{s.icon}</span>
+            <div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color: activeSection===s.id ? 'var(--text-primary)':'var(--text-secondary)', letterSpacing:'0.04em' }}>{s.label}</div>
+              <div style={{ fontSize:9, color:'var(--text-muted)', marginTop:1 }}>{s.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Next game footer */}
+      <div style={{ padding:'12px 14px', borderTop:'1px solid var(--bg-border)' }}>
+        <div style={{ fontSize:9, color:'var(--text-muted)', marginBottom:4, letterSpacing:'0.06em' }}>NEXT GAME</div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-secondary)' }}>VS</div>
+          <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+            <div style={{ width:20, height:20, borderRadius:4, background:'rgba(21,101,192,0.2)', border:'1px solid var(--storm-blue)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, color:'var(--storm-blue-bright)' }}>⚡</div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--storm-blue-bright)' }}>STORM SC</div>
+          </div>
+        </div>
+        <button style={{ width:'100%', marginTop:8, padding:'8px', background:'var(--blitz-red)', border:'none', color:'white', fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.06em', borderRadius:4 }}>
+          RETURN TO SEASON
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DeckBuilder({ role, onSetRole, deck, onSelectCard, selectedCard, dp }) {
+  const [filter, setFilter] = React.useState('ALL');
+  const [sort, setSort] = React.useState('POWER');
+  const totalCards = deck.reduce((a,c) => a + c.copies, 0);
+  const atCap = totalCards >= 20;
+
+  const filterTypes = role === 'offense'
+    ? ['ALL','RUN','PASS','OPTION','ROGUE']
+    : ['ALL','RUN D','ZONE','MAN','BLITZ','PREVENT'];
+
+  const filtered = deck
+    .filter(c => filter === 'ALL' || c.type.toUpperCase() === filter)
+    .sort((a,b) => sort === 'POWER' ? (b.power||0)-(a.power||0) : a.name.localeCompare(b.name));
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      {/* Header */}
+      <div style={{ padding:'10px 14px 0', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+          <div style={{ display:'flex', gap:0 }}>
+            <button className={`tab-btn ${role==='offense'?'active':''}`} onClick={() => onSetRole('offense')} style={{ color: role==='offense' ? 'var(--blitz-red)' : undefined }}>OFFENSE</button>
+            <button className={`tab-btn ${role==='defense'?'active':''}`} onClick={() => onSetRole('defense')} style={{ color: role==='defense' ? 'var(--storm-blue-bright)' : undefined,  borderBottomColor: role==='defense' ? 'var(--storm-blue)' : undefined }}>DEFENSE</button>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:11, color: atCap ? 'var(--blitz-red)' : 'var(--text-secondary)' }}>{totalCards}/20</span>
+            {atCap && <div style={{ fontSize:9, fontWeight:700, color:'var(--blitz-red)', background:'rgba(212,34,42,0.15)', border:'1px solid var(--blitz-red)', borderRadius:10, padding:'1px 6px', letterSpacing:'0.06em' }}>AT CAP</div>}
+          </div>
+        </div>
+        {/* Filters row */}
+        <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:8 }}>
+          {filterTypes.map(f => (
+            <button key={f} className={`filter-chip ${filter===f?'active':''}`} onClick={() => setFilter(f)}>{f}</button>
+          ))}
+          <div style={{ marginLeft:'auto', display:'flex', gap:6, flexShrink:0 }}>
+            <select value={sort} onChange={e => setSort(e.target.value)} style={{ background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-secondary)', fontSize:11, padding:'3px 8px', borderRadius:4, fontFamily:'var(--font-body)' }}>
+              <option value="POWER">SORT: POWER</option>
+              <option value="NAME">SORT: NAME</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Card grid */}
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 14px' }}>
+        <div className="card-grid">
+          {filtered.map(card => (
+            <div key={card.id} onClick={() => onSelectCard(card)} style={{ cursor:'pointer', animation:'slideUp 200ms both' }}>
+              <PlayCard card={card} role={role} selected={selectedCard?.id === card.id} compact />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Footer actions */}
+      <div style={{ padding:'10px 14px', borderTop:'1px solid var(--bg-border)', display:'flex', gap:8, flexShrink:0 }}>
+        <button style={{ flex:1, padding:'8px', background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-secondary)', fontFamily:'var(--font-display)', fontWeight:600, fontSize:11, letterSpacing:'0.06em', borderRadius:4 }}>
+          ⚙ FILTERS
+        </button>
+        <button style={{ flex:1, padding:'8px', background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontWeight:600, fontSize:11, letterSpacing:'0.06em', borderRadius:4 }}>
+          📚 VIEW CARD LIBRARY
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CardDetail({ card, dp, onUpgrade, onRemove }) {
+  if (!card) return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12, color:'var(--text-muted)', padding:24 }}>
+      <div style={{ fontSize:32, opacity:0.3 }}>🃏</div>
+      <div style={{ fontSize:12, textAlign:'center' }}>Select a card to view details</div>
+    </div>
+  );
+
+  const isOffense = card.type !== 'DEFENSE';
+  const rarityColor = card.rarity === 'RARE' ? 'var(--rarity-rare)' : card.rarity === 'ROGUE' ? 'var(--rarity-rogue)' : 'var(--rarity-common)';
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      <div style={{ padding:'12px 14px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+        <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.06em', marginBottom:6 }}>CARD DETAILS</div>
+        <div style={{ display:'flex', gap:10 }}>
+          {/* Large card preview */}
+          <div style={{ flexShrink:0 }}>
+            <PlayCard card={card} role={isOffense ? 'offense' : 'defense'} selected />
+          </div>
+
+          {/* Stats */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6 }}>
+            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>TYPE</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-primary)' }}>{card.type}</div>
+              </div>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>RARITY</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:rarityColor }}>{card.rarity}</div>
+              </div>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>COPIES</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-primary)' }}>{card.copies}</div>
+              </div>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>UPGRADE</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--success-green)' }}>AVAILABLE</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize:11, color:'var(--text-secondary)', lineHeight:1.4 }}>
+              {card.description || `${card.name} — ${card.subtype} formation.`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Synergy */}
+      {card.synergy && (
+        <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+          <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em', marginBottom:6 }}>SYNERGY</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8, background:'var(--bg-raised)', borderRadius:6, padding:'8px 10px' }}>
+            <div style={{ width:28, height:28, borderRadius:4, background:'rgba(212,34,42,0.2)', border:'1px solid var(--blitz-red)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12 }}>🏈</div>
+            <div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'var(--text-primary)' }}>{card.synergy.position}</div>
+              <div style={{ fontSize:10, color:'var(--text-secondary)' }}>{card.synergy.description}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VS Defense matrix */}
+      {card.vsDefense && (
+        <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+          <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em', marginBottom:6 }}>VS DEFENSE</div>
+          <div style={{ display:'flex', gap:6 }}>
+            {Object.entries(card.vsDefense).map(([def, val]) => (
+              <div key={def} style={{ flex:1, textAlign:'center', background:'var(--bg-raised)', borderRadius:6, padding:'6px 4px' }}>
+                <div style={{ fontSize:8, color:'var(--text-muted)', marginBottom:2 }}>{def}</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color: val > 2 ? 'var(--success-green)' : val < 0 ? 'var(--blitz-red)' : 'var(--text-muted)' }}>
+                  {val > 0 ? `+${val}` : val}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ padding:'10px 14px', display:'flex', gap:8, marginTop:'auto' }}>
+        <button onClick={onUpgrade} style={{
+          flex:2, padding:'9px', background:'var(--success-green)', border:'none', color:'var(--text-inverse)',
+          fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, letterSpacing:'0.06em', borderRadius:4,
+          display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+        }}>
+          ⬆ UPGRADE <span style={{ opacity:0.8 }}>{card.upgradeCost || 15} DP</span>
+        </button>
+        <button onClick={onRemove} style={{
+          flex:1, padding:'9px', background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-muted)',
+          fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.04em', borderRadius:4,
+        }}>
+          REMOVE COPIES
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DraftPanel({ offers, dp, onDraft }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, color:'var(--text-primary)', letterSpacing:'0.04em', marginBottom:4 }}>DRAFT NEW CARDS</div>
+        <div style={{ fontSize:11, color:'var(--text-secondary)' }}>5 offers available · Spend Draft Points to add to your roster</div>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+        {offers.map(card => {
+          const canAfford = dp >= card.cost;
+          const rarityColor = card.rarity === 'RARE' ? 'var(--rarity-rare)' : card.rarity === 'ROGUE' ? 'var(--rarity-rogue)' : 'var(--rarity-common)';
+          return (
+            <div key={card.id} className="draft-card" style={{ border:`1px solid ${card.rarity === 'RARE' ? 'rgba(232,168,32,0.3)' : card.rarity === 'ROGUE' ? 'rgba(168,85,247,0.3)' : 'var(--bg-border)'}` }}>
+              <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+                <div style={{ flexShrink:0 }}>
+                  <PlayCard card={card} role={card.type === 'DEFENSE' ? 'defense' : card.type === 'ROGUE' ? 'rogue' : 'offense'} compact />
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
+                    <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-primary)' }}>{card.name}</div>
+                    <div style={{ fontSize:9, color:rarityColor, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.08em' }}>{card.rarity}</div>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--text-secondary)', marginBottom:8 }}>
+                    {card.type} · {card.subtype} · Power {card.power || '?'}
+                  </div>
+                  <button onClick={() => canAfford && onDraft(card)} disabled={!canAfford} style={{
+                    padding:'7px 16px', background: canAfford ? 'var(--gold)' : 'var(--bg-raised)',
+                    border:`1.5px solid ${canAfford ? 'var(--gold)' : 'var(--bg-border)'}`,
+                    color: canAfford ? 'var(--text-inverse)' : 'var(--text-muted)',
+                    fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, letterSpacing:'0.06em',
+                    borderRadius:4, display:'flex', alignItems:'center', gap:6,
+                    opacity: canAfford ? 1 : 0.6,
+                  }}>
+                    <span>⬡</span> DRAFT {card.cost} DP
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function UpgradesPanel({ offers, dp }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, color:'var(--text-primary)', letterSpacing:'0.04em', marginBottom:4 }}>UPGRADES</div>
+        <div style={{ fontSize:11, color:'var(--text-secondary)' }}>Convert base cards to enhanced versions</div>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px', display:'flex', flexDirection:'column', gap:10 }}>
+        {offers.map(upg => {
+          const canAfford = dp >= upg.cost;
+          return (
+            <div key={upg.id} style={{ background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:'var(--radius-lg)', padding:'14px' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:10, color:'var(--text-muted)', marginBottom:2 }}>UPGRADE PATH</div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-secondary)' }}>{upg.fromName}</span>
+                    <span style={{ color:'var(--text-muted)' }}>→</span>
+                    <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--gold)' }}>{upg.toName}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign:'right' }}>
+                  <div style={{ fontSize:9, color:'var(--text-muted)' }}>POWER GAIN</div>
+                  <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:18, color:'var(--success-green)' }}>+{upg.powerGain}</div>
+                </div>
+              </div>
+              <button disabled={!canAfford} style={{
+                width:'100%', padding:'9px',
+                background: canAfford ? 'rgba(34,197,94,0.15)' : 'var(--bg-raised)',
+                border:`1.5px solid ${canAfford ? 'var(--success-green)' : 'var(--bg-border)'}`,
+                color: canAfford ? 'var(--success-green)' : 'var(--text-muted)',
+                fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, letterSpacing:'0.06em',
+                borderRadius:4, display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              }}>
+                ⬆ UPGRADE — {upg.cost} DP {!canAfford && '(Need more DP)'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PlaymakersPanel({ playmakers, dp }) {
+  const offense = playmakers.filter(p => p.role === 'offense');
+  const defense = playmakers.filter(p => p.role === 'defense');
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+      <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, color:'var(--text-primary)', letterSpacing:'0.04em', marginBottom:4 }}>RECRUIT PLAYMAKERS</div>
+        <div style={{ fontSize:11, color:'var(--text-secondary)' }}>Manage your roster · Max 4 per role</div>
+      </div>
+      <div style={{ flex:1, overflowY:'auto', padding:'12px 16px' }}>
+        {[{label:'OFFENSE', list:offense, color:'var(--blitz-red)'},{label:'DEFENSE', list:defense, color:'var(--storm-blue)'}].map(({label,list,color}) => (
+          <div key={label} style={{ marginBottom:20 }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color, letterSpacing:'0.08em', marginBottom:8, display:'flex', justifyContent:'space-between' }}>
+              {label} PLAYMAKERS
+              <span style={{ color:'var(--text-muted)', fontWeight:400 }}>{list.filter(p=>p.owned).length}/4 slots</span>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {list.map(pm => (
+                <div key={pm.id} style={{
+                  display:'flex', alignItems:'center', gap:12, padding:'10px 12px',
+                  background:'var(--bg-surface)', border:`1px solid ${pm.owned ? color+'44' : 'var(--bg-border)'}`,
+                  borderRadius:'var(--radius-md)', opacity: pm.owned ? 1 : 0.8,
+                }}>
+                  <div style={{ width:40, height:40, borderRadius:8, background:`${color}22`, border:`1.5px solid ${color}`, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <svg width={32} height={32} viewBox="0 0 32 32">
+                      <ellipse cx={16} cy={10} rx={5} ry={5} fill={color} opacity={0.9}/>
+                      <path d="M 8 28 L 10 16 L 22 16 L 24 28" fill={color} opacity={0.7}/>
+                    </svg>
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--text-primary)' }}>{pm.position}</div>
+                      <div style={{ fontSize:11, color:'var(--text-secondary)' }}>{pm.name}</div>
+                      {pm.owned && <div style={{ fontSize:8, color:'var(--success-green)', fontWeight:600, letterSpacing:'0.06em', background:'rgba(34,197,94,0.1)', border:'1px solid rgba(34,197,94,0.3)', padding:'1px 5px', borderRadius:10 }}>ACTIVE</div>}
+                    </div>
+                    <div style={{ display:'flex', gap:8, marginTop:3 }}>
+                      <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--gold)' }}>{pm.multiplier}×</div>
+                      <div style={{ fontSize:10, color:'var(--text-muted)' }}>Affinity: {pm.affinities.join(', ')}</div>
+                    </div>
+                  </div>
+                  {!pm.owned && (
+                    <button disabled={dp < pm.cost} style={{
+                      padding:'6px 12px', background: dp >= pm.cost ? color : 'var(--bg-raised)',
+                      border:`1px solid ${dp >= pm.cost ? color : 'var(--bg-border)'}`,
+                      color: dp >= pm.cost ? 'white' : 'var(--text-muted)',
+                      fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, letterSpacing:'0.04em', borderRadius:4,
+                    }}>
+                      ⬡ {pm.cost}
+                    </button>
+                  )}
+                  {pm.owned && (
+                    <button style={{ padding:'6px 10px', background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-muted)', fontFamily:'var(--font-display)', fontWeight:600, fontSize:10, letterSpacing:'0.04em', borderRadius:4 }}>
+                      MANAGE
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── LOCKER ROOM BG ILLUSTRATION ───────────────────────────────────────────
+function LockerRoomIllustration() {
+  return (
+    <div style={{ position:'relative', width:'100%', height:'100%', overflow:'hidden' }}>
+      {/* Dark gradient bg */}
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(135deg, #0a0e12 0%, #111820 50%, #0d1219 100%)' }} />
+      {/* Floor line */}
+      <div style={{ position:'absolute', bottom:'30%', left:0, right:0, height:2, background:'rgba(255,255,255,0.06)' }} />
+      {/* Locker shapes */}
+      {[0,1,2,3,4].map(i => (
+        <div key={i} style={{ position:'absolute', bottom:'30%', left:`${10 + i*16}%`, width:'12%', height:'55%', background:'rgba(30,40,55,0.8)', border:'1px solid rgba(255,255,255,0.08)', borderBottom:'none', borderRadius:'4px 4px 0 0' }}>
+          <div style={{ position:'absolute', top:8, left:'50%', transform:'translateX(-50%)', width:'40%', height:3, background:'rgba(255,255,255,0.1)', borderRadius:2 }} />
+          <div style={{ position:'absolute', top:16, left:4, right:4, bottom:0, background:'rgba(0,0,0,0.3)', borderRadius:'2px 2px 0 0' }} />
+        </div>
+      ))}
+      {/* Bench */}
+      <div style={{ position:'absolute', bottom:'28%', left:'5%', right:'5%', height:8, background:'rgba(60,40,20,0.6)', borderRadius:4 }} />
+      {/* Equipment on bench */}
+      <div style={{ position:'absolute', bottom:'30%', left:'20%', width:'15%', height:'20%', display:'flex', alignItems:'flex-end', justifyContent:'center', paddingBottom:4 }}>
+        <div style={{ width:'60%', aspectRatio:'1', borderRadius:'50%', background:'linear-gradient(135deg, rgba(212,34,42,0.4) 0%, rgba(60,20,20,0.8) 100%)', border:'2px solid rgba(212,34,42,0.3)' }} />
+      </div>
+      {/* Team logo on wall */}
+      <div style={{ position:'absolute', top:'15%', left:'50%', transform:'translateX(-50%)', width:60, height:60, borderRadius:10, background:'rgba(212,34,42,0.15)', border:'2px solid rgba(212,34,42,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontWeight:900, fontSize:28, color:'rgba(212,34,42,0.5)' }}>
+        B
+      </div>
+      {/* Ambient glow */}
+      <div style={{ position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 50% at 50% 100%, rgba(212,34,42,0.08) 0%, transparent 60%)' }} />
+      {/* Tablet/board on table */}
+      <div style={{ position:'absolute', bottom:'34%', left:'55%', width:'20%', height:'18%', background:'rgba(15,25,40,0.9)', border:'1px solid rgba(41,121,255,0.3)', borderRadius:4, display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:12, color:'rgba(41,121,255,0.4)', letterSpacing:'0.06em' }}>BLITZ FC</div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────
+
+const LR_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "defaultSection": "deck",
+  "defaultDeckRole": "offense",
+  "dp": 32
+}/*EDITMODE-END*/;
+
+function LockerRoomScreen() {
+  const [tweaks, setTweak] = useTweaks(LR_TWEAK_DEFAULTS);
+  const [activeSection, setActiveSection] = React.useState(LR_TWEAK_DEFAULTS.defaultSection);
+  const [deckRole, setDeckRole] = React.useState(LR_TWEAK_DEFAULTS.defaultDeckRole);
+  const [selectedCard, setSelectedCard] = React.useState(DETAIL_CARD);
+  const [dp, setDp] = React.useState(LR_TWEAK_DEFAULTS.dp);
+  const [showTweaks, setShowTweaks] = React.useState(false);
+
+  const deck = deckRole === 'offense' ? OFF_DECK : DEF_DECK;
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const mainContent = () => {
+    if (activeSection === 'draft') return <DraftPanel offers={DRAFT_OFFERS} dp={dp} onDraft={c => setDp(d => Math.max(0,d-c.cost))} />;
+    if (activeSection === 'upgrades') return <UpgradesPanel offers={UPGRADE_OFFERS} dp={dp} />;
+    if (activeSection === 'playmakers') return <PlaymakersPanel playmakers={PLAYMAKERS} dp={dp} />;
+    return (
+      <DeckBuilder role={deckRole} onSetRole={setDeckRole} deck={deck}
+        onSelectCard={setSelectedCard} selectedCard={selectedCard} dp={dp} />
+    );
+  };
+
+  const showDetail = activeSection === 'deck';
+
+  return (
+    <div className="locker-room-bg" style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
+      {/* Left: Locker illustration */}
+      <div style={{ width:200, flexShrink:0, position:'relative', borderRight:'1px solid var(--bg-border)' }}>
+        <LockerRoomIllustration />
+      </div>
+
+      {/* Nav sidebar */}
+      <LockerSidebar activeSection={activeSection} onSelect={setActiveSection} dp={dp} />
+
+      {/* Main content area */}
+      <div style={{ flex:1, display:'flex', overflow:'hidden', minWidth:0 }}>
+        <div style={{ flex:1, overflow:'hidden', borderRight: showDetail ? '1px solid var(--bg-border)' : 'none' }}>
+          {mainContent()}
+        </div>
+
+        {/* Card detail panel */}
+        {showDetail && (
+          <div style={{ width:260, flexShrink:0, overflow:'hidden', background:'var(--bg-surface)' }}>
+            <div style={{ padding:'10px 14px 8px', borderBottom:'1px solid var(--bg-border)' }}>
+              <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.06em' }}>CARD DETAIL / INFO</div>
+            </div>
+            <CardDetail
+              card={selectedCard} dp={dp}
+              onUpgrade={() => selectedCard && setDp(d => Math.max(0, d - (selectedCard.upgradeCost||15)))}
+              onRemove={() => {}}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Tweaks */}
+      {showTweaks && (
+        <TweaksPanel onClose={() => { setShowTweaks(false); window.parent.postMessage({ type:'__edit_mode_dismissed' }, '*'); }}>
+          <TweakSection title="Locker Room">
+            <TweakSelect label="Active Section" value={activeSection} options={['deck','draft','upgrades','playmakers']} onChange={v => setActiveSection(v)} />
+            <TweakRadio label="Deck Tab" value={deckRole} options={['offense','defense']} onChange={v => setDeckRole(v)} />
+            <TweakNumber label="Draft Points" value={dp} min={0} max={99} onChange={v => setDp(v)} />
+          </TweakSection>
+        </TweaksPanel>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<LockerRoomScreen />);
+</script>
+</body>
+</html>

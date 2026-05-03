@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snap Count — Gameplay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="snap-count-tokens.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: var(--bg-void); color: var(--text-primary); font-family: var(--font-body); overflow: hidden; }
+  #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
+  button { font-family: var(--font-display); }
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 2px; }
+
+  @keyframes slideUp    { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes fadeIn     { from { opacity:0; } to { opacity:1; } }
+  @keyframes pulse      { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+  @keyframes glow-ball  { 0%,100% { box-shadow:0 0 10px rgba(232,168,32,0.5); } 50% { box-shadow:0 0 24px rgba(232,168,32,0.8); } }
+  @keyframes snap-flash { 0%{opacity:0;transform:scale(0.6);} 40%{opacity:1;transform:scale(1.18);} 70%{transform:scale(0.95);} 100%{opacity:1;transform:scale(1);} }
+  @keyframes snap-shake { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-5px);} 40%{transform:translateX(5px);} 60%{transform:translateX(-3px);} 80%{transform:translateX(3px);} }
+  @keyframes yds-pop    { 0%{opacity:0;transform:translateY(12px) scale(0.7);} 50%{transform:translateY(-4px) scale(1.12);} 100%{opacity:1;transform:translateY(0) scale(1);} }
+  @keyframes res-slide  { from{opacity:0;transform:translateX(16px);} to{opacity:1;transform:translateX(0);} }
+  @keyframes td-flash   { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  .field-bg {
+    background: repeating-linear-gradient(90deg, transparent 0%, transparent calc(84%/9), rgba(255,255,255,0.025) calc(84%/9), rgba(255,255,255,0.025) calc(84%/9 + 1px));
+    background-color: var(--field-bg);
+  }
+  .card-row { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; padding-top:2px; }
+  .card-row::-webkit-scrollbar { height:3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+// ── TWEAKS PANEL (inlined) ─────────────────────────────────────────────────
+
+const __TS = `.twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;max-height:calc(100vh - 32px);display:flex;flex-direction:column;background:rgba(250,249,247,.88);color:#29261b;-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border:.5px solid rgba(255,255,255,.6);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.18);font:11.5px/1.4 ui-sans-serif,system-ui,sans-serif;overflow:hidden}
+.twk-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 10px 14px;cursor:move;user-select:none}
+.twk-hd b{font-size:12px;font-weight:600}
+.twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+.twk-x:hover{background:rgba(0,0,0,.06)}
+.twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden;min-height:0}
+.twk-row{display:flex;flex-direction:column;gap:5px}
+.twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+.twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+.twk-lbl>span:first-child{font-weight:500}
+.twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(41,38,27,.45);padding:10px 0 0}
+.twk-sect:first-child{padding-top:0}
+.twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+.twk-toggle[data-on="1"]{background:#34c759}
+.twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.twk-toggle[data-on="1"] i{transform:translateX(14px)}
+.twk-btn{appearance:none;height:26px;padding:0 12px;border:0;border-radius:7px;background:rgba(0,0,0,.78);color:#fff;font:inherit;font-weight:500;cursor:default}
+.twk-btn:hover{background:rgba(0,0,0,.88)}`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((k, v) => {
+    const edits = typeof k === 'object' && k !== null ? k : { [k]: v };
+    setValues(prev => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type:'__edit_mode_set_keys', edits }, '*');
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ children }) {
+  const [open, setOpen] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const h = e => {
+      if (e.data?.type === '__activate_edit_mode') setOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', h);
+    window.parent.postMessage({ type:'__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', h);
+  }, []);
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TS}</style>
+      <div ref={ref} className="twk-panel">
+        <div className="twk-hd">
+          <b>Tweaks</b>
+          <button className="twk-x" onClick={() => { setOpen(false); window.parent.postMessage({type:'__edit_mode_dismissed'},'*'); }}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ title, children }) {
+  return <><div className="twk-sect">{title}</div>{children}</>;
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value?'1':'0'} onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function TweakButton({ label, onClick }) {
+  return <button type="button" className="twk-btn" onClick={onClick}>{label}</button>;
+}
+
+// ── PLAY CARD ──────────────────────────────────────────────────────────────
+
+function PlayCard({ card, role='offense', selected=false, disabled=false, compact=false, onClick }) {
+  const isRogue = card.type === 'ROGUE';
+  const borderColor = isRogue ? 'var(--rogue-purple)' : role === 'offense' ? 'var(--blitz-red)' : 'var(--storm-blue)';
+  const glowColor   = isRogue ? 'var(--glow-purple)'  : role === 'offense' ? 'var(--glow-red)'   : 'var(--glow-blue)';
+  const rarityColor = card.rarity === 'RARE' ? 'var(--rarity-rare)' : card.rarity === 'ROGUE' ? 'var(--rarity-rogue)' : 'var(--rarity-common)';
+
+  const onHover = (e, enter) => {
+    if (disabled) return;
+    e.currentTarget.style.transform = enter ? 'translateY(-2px) scale(1.02)' : '';
+    e.currentTarget.style.boxShadow = enter ? (selected ? 'var(--glow-gold)' : glowColor) : (selected ? 'var(--glow-gold)' : 'none');
+  };
+
+  return (
+    <div onClick={onClick} onMouseEnter={e=>onHover(e,true)} onMouseLeave={e=>onHover(e,false)} style={{
+      position:'relative', width: compact ? 88 : 155, minHeight: compact ? 100 : 152,
+      background:'var(--bg-surface)', border:`2px solid ${selected ? 'var(--gold)' : borderColor}`,
+      borderRadius:'var(--radius-lg)', padding: compact ? '8px 6px' : '10px 8px',
+      cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.45 : 1,
+      boxShadow: selected ? 'var(--glow-gold)' : 'none',
+      transition:'border-color 150ms, box-shadow 150ms, transform 150ms',
+      display:'flex', flexDirection:'column', gap:4, flexShrink:0, userSelect:'none',
+    }}>
+      <div style={{ position:'absolute', top:0, left:8, right:8, height:2, background:rarityColor, borderRadius:2 }} />
+      <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:3 }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize: compact?9:12, color:'var(--text-primary)', letterSpacing:'0.04em', textTransform:'uppercase', flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            {card.name}
+          </div>
+          {card.rarity === 'RARE' && !compact && <div style={{ fontSize:7, fontWeight:700, color:'var(--rarity-rare)', flexShrink:0 }}>RARE</div>}
+          {isRogue && !compact && <div style={{ fontSize:7, fontWeight:700, color:'var(--rarity-rogue)', flexShrink:0 }}>ROGUE</div>}
+        </div>
+        <div style={{ fontFamily:'var(--font-body)', fontSize: compact?8:10, color:'var(--text-secondary)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{card.subtype}</div>
+      </div>
+      <div style={{ flex:1, background:'var(--bg-deep)', borderRadius:4, minHeight: compact?36:56, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+        {isRogue ? <RogueDiagram card={card} s={compact?0.55:1} /> :
+         role === 'offense' ? <OffenseDiagram subtype={card.subtype} s={compact?0.55:1} /> :
+         <DefenseDiagram subtype={card.subtype} s={compact?0.55:1} />}
+      </div>
+      <div style={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', marginTop:2 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize: compact?22:32, color:'var(--text-primary)', lineHeight:1 }}>{card.power}</div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontSize: compact?7:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>BASE</div>
+          <div style={{ fontSize: compact?9:12, color:'var(--text-secondary)', fontWeight:600, fontFamily:'var(--font-display)' }}>{card.basePower || card.power}</div>
+        </div>
+      </div>
+      {card.copies && <div style={{ position:'absolute', bottom:6, right:6, fontSize:9, color:'var(--text-muted)' }}>×{card.copies}</div>}
+    </div>
+  );
+}
+
+function OffenseDiagram({ subtype, s }) {
+  const w=68*s, h=52*s;
+  const d = {
+    'SPOT':   <><line x1={34*s} y1={46*s} x2={34*s} y2={22*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={34*s} y1={22*s} x2={44*s} y2={10*s} stroke="#E8A820" strokeWidth={1.5}/><circle cx={44*s} cy={10*s} r={3*s} fill="#E8A820"/><circle cx={34*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'POWER':  <><line x1={34*s} y1={46*s} x2={34*s} y2={14*s} stroke="#E8A820" strokeWidth={2.5}/><polygon points={`${34*s},${8*s} ${30*s},${17*s} ${38*s},${17*s}`} fill="#E8A820"/><circle cx={34*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'READ':   <><line x1={18*s} y1={46*s} x2={18*s} y2={26*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={18*s} y1={26*s} x2={34*s} y2={14*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={46*s} y1={46*s} x2={46*s} y2={26*s} stroke="#8CA0B4" strokeWidth={1}/><line x1={46*s} y1={26*s} x2={34*s} y2={14*s} stroke="#8CA0B4" strokeWidth={1}/><circle cx={34*s} cy={14*s} r={3*s} fill="#E8A820"/><circle cx={18*s} cy={46*s} r={3*s} fill="#8CA0B4"/><circle cx={46*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'SLANT':  <><line x1={28*s} y1={46*s} x2={28*s} y2={30*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={28*s} y1={30*s} x2={50*s} y2={12*s} stroke="#E8A820" strokeWidth={1.5}/><circle cx={50*s} cy={12*s} r={3*s} fill="#E8A820"/><circle cx={28*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'DEEP':   <><line x1={34*s} y1={46*s} x2={34*s} y2={8*s} stroke="#E8A820" strokeWidth={1.5} strokeDasharray="3,2"/><circle cx={34*s} cy={8*s} r={3*s} fill="#E8A820"/><circle cx={34*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'SWEEP':  <><path d={`M ${20*s} ${46*s} Q ${60*s} ${40*s} ${58*s} ${14*s}`} stroke="#E8A820" strokeWidth={1.5} fill="none"/><circle cx={58*s} cy={14*s} r={3*s} fill="#E8A820"/><circle cx={20*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'ISO':    <><line x1={34*s} y1={46*s} x2={20*s} y2={30*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={20*s} y1={30*s} x2={20*s} y2={14*s} stroke="#E8A820" strokeWidth={1.5}/><circle cx={20*s} cy={14*s} r={3*s} fill="#E8A820"/><circle cx={34*s} cy={46*s} r={3*s} fill="#8CA0B4"/></>,
+    'TRIPLE': <><line x1={14*s} y1={46*s} x2={14*s} y2={18*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={34*s} y1={46*s} x2={34*s} y2={12*s} stroke="#E8A820" strokeWidth={1.5}/><line x1={54*s} y1={46*s} x2={54*s} y2={18*s} stroke="#E8A820" strokeWidth={1.5}/><circle cx={14*s} cy={18*s} r={2.5*s} fill="#E8A820"/><circle cx={34*s} cy={12*s} r={2.5*s} fill="#E8A820"/><circle cx={54*s} cy={18*s} r={2.5*s} fill="#E8A820"/></>,
+  };
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>{d[subtype] || d['SPOT']}</svg>;
+}
+
+function DefenseDiagram({ subtype, s }) {
+  const w=68*s, h=52*s;
+  const d = {
+    'COVER 3': <><line x1={10*s} y1={18*s} x2={58*s} y2={18*s} stroke="#2979FF" strokeWidth={1} strokeDasharray="4,3"/><circle cx={10*s} cy={18*s} r={3*s} fill="#2979FF"/><circle cx={34*s} cy={18*s} r={3*s} fill="#2979FF"/><circle cx={58*s} cy={18*s} r={3*s} fill="#2979FF"/><line x1={22*s} y1={40*s} x2={46*s} y2={40*s} stroke="#2979FF" strokeWidth={1}/><circle cx={22*s} cy={40*s} r={2.5*s} fill="#2979FF"/><circle cx={46*s} cy={40*s} r={2.5*s} fill="#2979FF"/></>,
+    'BLITZ':   <><line x1={18*s} y1={8*s} x2={28*s} y2={44*s} stroke="#FF3340" strokeWidth={2}/><line x1={50*s} y1={8*s} x2={40*s} y2={44*s} stroke="#FF3340" strokeWidth={2}/><circle cx={18*s} cy={8*s} r={3*s} fill="#FF3340"/><circle cx={50*s} cy={8*s} r={3*s} fill="#FF3340"/><circle cx={34*s} cy={14*s} r={3*s} fill="#2979FF"/></>,
+    'ZONE':    <><ellipse cx={34*s} cy={22*s} rx={26*s} ry={14*s} stroke="#2979FF" strokeWidth={1.5} fill="rgba(41,121,255,0.1)"/><circle cx={14*s} cy={22*s} r={3*s} fill="#2979FF"/><circle cx={34*s} cy={14*s} r={3*s} fill="#2979FF"/><circle cx={54*s} cy={22*s} r={3*s} fill="#2979FF"/></>,
+    'MAN':     <><circle cx={18*s} cy={12*s} r={3*s} fill="#2979FF"/><circle cx={50*s} cy={12*s} r={3*s} fill="#2979FF"/><circle cx={34*s} cy={8*s} r={3*s} fill="#2979FF"/><line x1={18*s} y1={12*s} x2={22*s} y2={42*s} stroke="#2979FF" strokeWidth={1} strokeDasharray="2,2"/><line x1={50*s} y1={12*s} x2={46*s} y2={42*s} stroke="#2979FF" strokeWidth={1} strokeDasharray="2,2"/></>,
+    'PREVENT': <><line x1={8*s} y1={10*s} x2={60*s} y2={10*s} stroke="#2979FF" strokeWidth={2}/><circle cx={8*s} cy={10*s} r={2.5*s} fill="#2979FF"/><circle cx={20*s} cy={10*s} r={2.5*s} fill="#2979FF"/><circle cx={34*s} cy={10*s} r={2.5*s} fill="#2979FF"/><circle cx={48*s} cy={10*s} r={2.5*s} fill="#2979FF"/><circle cx={60*s} cy={10*s} r={2.5*s} fill="#2979FF"/></>,
+    'RUN D':   <><line x1={12*s} y1={44*s} x2={56*s} y2={44*s} stroke="#2979FF" strokeWidth={2.5}/><circle cx={12*s} cy={44*s} r={3*s} fill="#2979FF"/><circle cx={24*s} cy={44*s} r={3*s} fill="#2979FF"/><circle cx={34*s} cy={44*s} r={3*s} fill="#2979FF"/><circle cx={44*s} cy={44*s} r={3*s} fill="#2979FF"/><circle cx={56*s} cy={44*s} r={3*s} fill="#2979FF"/></>,
+  };
+  return <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>{d[subtype] || d['ZONE']}</svg>;
+}
+
+function RogueDiagram({ card, s }) {
+  const w=68*s, h=52*s;
+  if (card.name === 'FILM STUDY') return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <circle cx={34*s} cy={26*s} r={16*s} stroke="var(--rogue-purple-bright)" strokeWidth={1.5} fill="rgba(124,58,237,0.1)"/>
+      <circle cx={34*s} cy={26*s} r={7*s} stroke="var(--rogue-purple-bright)" strokeWidth={1} fill="rgba(124,58,237,0.2)"/>
+      <line x1={24*s} y1={16*s} x2={44*s} y2={36*s} stroke="var(--rogue-purple-bright)" strokeWidth={1} opacity={0.5}/>
+      <line x1={44*s} y1={16*s} x2={24*s} y2={36*s} stroke="var(--rogue-purple-bright)" strokeWidth={1} opacity={0.5}/>
+    </svg>
+  );
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
+      <path d={`M ${34*s} ${46*s} Q ${14*s} ${10*s} ${34*s} ${6*s} Q ${54*s} ${10*s} ${34*s} ${46*s}`} stroke="var(--rogue-purple-bright)" strokeWidth={1.5} fill="rgba(168,85,247,0.15)"/>
+      <circle cx={34*s} cy={26*s} r={4*s} fill="var(--rogue-purple-bright)"/>
+    </svg>
+  );
+}
+
+function RoleBadge({ role, isYou=false }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
+      <div style={{ padding:'3px 10px', background: role==='offense' ? 'var(--blitz-red)' : 'var(--storm-blue)', borderRadius:'var(--radius-sm)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'white', letterSpacing:'0.08em', textTransform:'uppercase' }}>
+        {role}
+      </div>
+      {isYou && <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>YOU</div>}
+    </div>
+  );
+}
+
+// ── GAME DATA ──────────────────────────────────────────────────────────────
+
+const OFFENSE_CARDS = [
+  { id:'pm1', name:'PASS M',     subtype:'SPOT',  power:17, basePower:12, rarity:'RARE',   copies:2, type:'PASS'   },
+  { id:'ri1', name:'RUN IN',     subtype:'POWER', power:14, basePower:14, rarity:'common', copies:2, type:'RUN'    },
+  { id:'op1', name:'OPTION',     subtype:'READ',  power:13, basePower:13, rarity:'common', copies:2, type:'OPTION' },
+  { id:'fs1', name:'FILM STUDY', subtype:'ROGUE', power:0,  basePower:0,  rarity:'ROGUE',  copies:1, type:'ROGUE',  special:'reveal'   },
+  { id:'hm1', name:'HAIL MARY',  subtype:'ROGUE', power:'?',basePower:0,  rarity:'ROGUE',  copies:1, type:'ROGUE',  special:'hailmary' },
+];
+
+const DEF_CARD = { id:'def1', name:'ZONE', subtype:'COVER 3', power:15, basePower:12, rarity:'common', copies:1, type:'DEFENSE' };
+
+const DEF_TENDENCIES = [
+  { label:'ZONE', pct:60 }, { label:'BLITZ', pct:25 }, { label:'MAN', pct:15 }
+];
+
+const MATCHUP_MATRIX = {
+  'PASS':   { 'ZONE':0, 'BLITZ':3, 'MAN':-2, 'RUN D':3, 'PREVENT':2 },
+  'RUN':    { 'ZONE':4, 'BLITZ':1, 'MAN':3,  'RUN D':0, 'PREVENT':3 },
+  'OPTION': { 'ZONE':2, 'BLITZ':1, 'MAN':1,  'RUN D':1, 'PREVENT':2 },
+  'ROGUE':  { 'ZONE':0, 'BLITZ':0, 'MAN':0,  'RUN D':0, 'PREVENT':0 },
+};
+
+const REWARDS = [
+  { id:'r1', type:'ADD CARD',   title:'HAIL MARY',  description:'Add Hail Mary to your deck.' },
+  { id:'r2', type:'GAME BOOST', title:'+2',          description:'+2 Power to all Offensive cards this game.', value:2 },
+  { id:'r3', type:'PLAYMAKER',  title:'CLUTCH MODE', description:'Your Playmaker gets +0.25× Multiplier.' },
+];
+
+function getMatchupMod(offCard, defCard) {
+  const defType = defCard.name === 'ZONE' ? 'ZONE' : defCard.name === 'BLITZ' ? 'BLITZ' :
+                  defCard.name === 'MAN' ? 'MAN' : defCard.subtype?.includes('RUN') ? 'RUN D' : 'PREVENT';
+  return (MATCHUP_MATRIX[offCard.type] || {})[defType] || 0;
+}
+
+// ── SCOREBOARD ─────────────────────────────────────────────────────────────
+
+function ScoreboardBar({ state }) {
+  return (
+    <div style={{ display:'flex', alignItems:'center', padding:'8px 16px', background:'var(--bg-deep)', borderBottom:'1px solid var(--bg-border)', gap:12, flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, flex:1 }}>
+        <div style={{ width:32, height:32, borderRadius:6, background:'rgba(212,34,42,0.2)', border:'2px solid var(--blitz-red)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontWeight:900, fontSize:16, color:'var(--blitz-red)' }}>B</div>
+        <div>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-primary)', letterSpacing:'0.04em' }}>BLITZ FC</div>
+          <div style={{ fontSize:9, color:'var(--text-muted)' }}>{state.homeRecord}</div>
+        </div>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--blitz-red)', lineHeight:1, marginLeft:4 }}>{state.homeScore}</div>
+      </div>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3 }}>
+        <div style={{ display:'flex', gap:16 }}>
+          {[['QTR',`Q${state.quarter}`],['TIME',state.gameTime],['PLAY',`${state.play}/${state.totalPlays}`]].map(([l,v])=>(
+            <div key={l} style={{ textAlign:'center' }}>
+              <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>{l}</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color: l==='PLAY'?'var(--gold)':'var(--text-primary)' }}>{v}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+          <div style={{ display:'flex', gap:4, alignItems:'center', background:'var(--gold-subtle)', border:'1px solid var(--gold-dim)', borderRadius:12, padding:'2px 8px' }}>
+            <span style={{ fontSize:10, color:'var(--gold)' }}>⬡</span>
+            <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'var(--gold)' }}>{state.dp}</span>
+          </div>
+          <div style={{ fontSize:10, color:'var(--text-muted)' }}>↺ {state.redraws}</div>
+          {state.down === 4 && <div style={{ fontSize:10, color:'var(--gold)', fontWeight:600 }}>⊕ FG</div>}
+        </div>
+      </div>
+      <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, justifyContent:'flex-end' }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--storm-blue-bright)', lineHeight:1, marginRight:4 }}>{state.awayScore}</div>
+        <div style={{ textAlign:'right' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:'var(--text-primary)', letterSpacing:'0.04em' }}>STORM SC</div>
+          <div style={{ fontSize:9, color:'var(--text-muted)' }}>{state.awayRecord}</div>
+        </div>
+        <div style={{ width:32, height:32, borderRadius:6, background:'rgba(21,101,192,0.2)', border:'2px solid var(--storm-blue)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontWeight:900, fontSize:14, color:'var(--storm-blue-bright)' }}>⚡</div>
+      </div>
+    </div>
+  );
+}
+
+// ── FIELD STRIP ────────────────────────────────────────────────────────────
+
+function FieldArea({ ballPos, down, distance, playClock }) {
+  const yards = [10,20,30,40,50,40,30,20,10];
+  const ballLeft = `calc(8% + ${(ballPos/100)*84}%)`;
+  const fdLeft   = `calc(8% + ${Math.min(98,(ballPos+distance)/100*84)}%)`;
+  const urgent   = playClock <= 5;
+  return (
+    <div style={{ flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'5px 14px', background:'rgba(0,0,0,0.65)', borderBottom:'1px solid var(--bg-border)', minHeight:36 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexShrink:0 }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color: down===4?'var(--blitz-red)':'var(--text-primary)', whiteSpace:'nowrap' }}>
+            {['','1ST','2ND','3RD','4TH'][down]} &amp; {distance}
+          </div>
+          <div style={{ width:1, height:16, background:'var(--bg-border)' }} />
+          <div style={{ fontSize:12, color:'var(--text-secondary)', whiteSpace:'nowrap' }}>
+            BALL ON <span style={{ fontFamily:'var(--font-display)', fontWeight:700, color:'var(--gold)' }}>{ballPos}</span>
+          </div>
+          <div style={{ width:1, height:16, background:'var(--bg-border)' }} />
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, flexShrink:0, color: urgent?'var(--blitz-red)':'var(--text-primary)', padding:'2px 8px', border:`1.5px solid ${urgent?'var(--blitz-red)':'var(--bg-border)'}`, borderRadius:4, animation: urgent?'pulse 0.8s infinite':'none' }}>
+            :{String(playClock).padStart(2,'0')}
+          </div>
+        </div>
+        <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+          <RoleBadge role="offense" isYou={true} />
+          <RoleBadge role="defense" />
+        </div>
+      </div>
+      <div className="field-bg" style={{ position:'relative', height:72, overflow:'hidden', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ position:'absolute', left:'2%', top:'50%', transform:'translateY(-50%)', fontFamily:'var(--font-display)', fontWeight:900, fontSize:11, color:'var(--blitz-red)', opacity:0.25, letterSpacing:'0.15em' }}>BLITZ</div>
+        <div style={{ position:'absolute', right:'2%', top:'50%', transform:'translateY(-50%)', fontFamily:'var(--font-display)', fontWeight:900, fontSize:11, color:'var(--storm-blue)', opacity:0.25, letterSpacing:'0.15em' }}>STORM</div>
+        <div style={{ position:'absolute', left:0, top:0, width:'8%', height:'100%', background:'var(--field-end-red)', borderRight:'2px solid rgba(212,34,42,0.4)' }} />
+        <div style={{ position:'absolute', right:0, top:0, width:'8%', height:'100%', background:'var(--field-end-blue)', borderLeft:'2px solid rgba(21,101,192,0.4)' }} />
+        {yards.map((y,i) => (
+          <div key={i} style={{ position:'absolute', left:`calc(8% + ${i*(84/8)}%)`, top:0, height:'100%', pointerEvents:'none' }}>
+            <div style={{ width:1, height:'100%', background:'rgba(255,255,255,0.12)' }} />
+            <div style={{ position:'absolute', top:3, left:3, fontFamily:'var(--font-display)', fontSize:8, color:'rgba(255,255,255,0.4)' }}>{y}</div>
+            <div style={{ position:'absolute', bottom:3, left:3, fontFamily:'var(--font-display)', fontSize:8, color:'rgba(255,255,255,0.4)' }}>{y}</div>
+          </div>
+        ))}
+        <div style={{ position:'absolute', left:fdLeft, top:0, height:'100%', width:2, background:'rgba(255,200,0,0.55)' }} />
+        <div style={{ position:'absolute', left:ballLeft, top:'50%', transform:'translate(-50%,-50%)', zIndex:10, transition:'left 700ms cubic-bezier(0.4,0,0.2,1)' }}>
+          <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--bg-void)', border:'2px solid var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', animation:'glow-ball 2s infinite' }}>
+            <span style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:8, color:'var(--gold)' }}>{ballPos}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MATCHUP PANEL ──────────────────────────────────────────────────────────
+
+function MatchupPanel({ offCard, defCard, phase, result, animating }) {
+  const mod = offCard ? getMatchupMod(offCard, defCard) : 0;
+
+  if (!offCard) return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16, padding:24, background:'var(--bg-deep)' }}>
+      <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+        <PlayCard card={defCard} role="defense" />
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          <div style={{ fontSize:10, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:2 }}>DEF TENDENCY</div>
+          {DEF_TENDENCIES.map(t => (
+            <div key={t.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10, width:160 }}>
+              <span style={{ fontSize:11, color:'var(--text-secondary)' }}>{t.label}</span>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:60, height:4, background:'var(--bg-border)', borderRadius:2, overflow:'hidden' }}>
+                  <div style={{ width:`${t.pct}%`, height:'100%', background:'var(--storm-blue)', borderRadius:2 }} />
+                </div>
+                <span style={{ fontSize:10, color:'var(--text-primary)', fontWeight:600, width:28, textAlign:'right' }}>{t.pct}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{ fontSize:12, color:'var(--text-muted)', fontStyle:'italic' }}>← Select a card to see matchup</div>
+    </div>
+  );
+
+  const offFinal = offCard.power === '?' ? '?' : (offCard.power + mod);
+  const defFinal = defCard.power;
+  const offWins  = phase === 'resolved' && result?.yards > 0;
+  const defWins  = phase === 'resolved' && result?.yards < 0;
+
+  return (
+    <div style={{ flex:1, display:'flex', overflow:'hidden', background:'var(--bg-deep)' }}>
+      {/* Offense */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', padding:14, gap:8, borderRight:'1px solid var(--bg-border)' }}>
+        <div style={{ display:'flex', gap:10 }}>
+          <div style={{ flexShrink:0, animation: animating?'snap-shake 350ms both':'none' }}>
+            <PlayCard card={offCard} role="offense" selected />
+          </div>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6 }}>
+            <div style={{ background:'var(--bg-raised)', borderRadius:6, padding:'8px 10px' }}>
+              <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>vs {defCard.name}</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color: mod>=2?'var(--success-green)':mod<=-1?'var(--blitz-red)':'var(--gold)', lineHeight:1 }}>
+                {mod>=2?'Favorable':mod<=-1?'Difficult':'Neutral'} {mod>0?`(+${mod})`:mod<0?`(${mod})`:''}
+              </div>
+            </div>
+            <div style={{ background:'var(--bg-raised)', borderRadius:6, padding:'8px 10px', flex:1 }}>
+              <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>EFFECTIVE POWER</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:36, color: offWins?'var(--success-green)':defWins?'var(--blitz-red)':'var(--text-primary)', lineHeight:1, animation: animating?'snap-flash 450ms both':'none' }}>
+                {offFinal}
+              </div>
+              <div style={{ marginTop:6, height:4, background:'var(--bg-border)', borderRadius:2, overflow:'hidden' }}>
+                <div style={{ height:'100%', background: offWins?'var(--success-green)':'var(--blitz-red)', borderRadius:2, width: phase==='resolved'?`${Math.min(100,(Number(offFinal)||0)/30*100)}%`:'0%', transition:'width 700ms cubic-bezier(0,0,0.2,1)' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+        {phase === 'resolved' && result && (
+          <div style={{ background: result.yards>0?'rgba(34,197,94,0.1)':'rgba(212,34,42,0.1)', border:`1.5px solid ${result.yards>0?'var(--success-green)':'var(--blitz-red)'}`, borderRadius:8, padding:'10px 14px', animation:'res-slide 350ms cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>PLAY RESULT</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:34, color: result.yards>0?'var(--success-green)':result.yards<0?'var(--blitz-red)':'var(--text-secondary)', lineHeight:1, animation:'yds-pop 400ms cubic-bezier(0.175,0.885,0.32,1.275) both' }}>
+                  {result.yards>0?`+${result.yards}`:result.yards} YDS
+                </div>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:4, alignItems:'flex-end' }}>
+                {result.firstDown && !result.touchdown && <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'var(--gold)', background:'var(--gold-subtle)', border:'1px solid var(--gold-dim)', borderRadius:10, padding:'2px 8px', letterSpacing:'0.06em' }}>FIRST DOWN ↓</div>}
+                {result.touchdown && <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color:'white', background:'var(--blitz-red)', borderRadius:10, padding:'2px 8px', animation:'td-flash 0.5s 4' }}>TOUCHDOWN!</div>}
+                <div style={{ fontSize:10, color:'var(--text-muted)' }}>OFF {offFinal} · DEF {defFinal}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Center */}
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'0 14px', gap:6, flexShrink:0 }}>
+        <div style={{ fontSize:10, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>MATCHUP</div>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:26, color: mod>0?'var(--success-green)':mod<0?'var(--blitz-red)':'var(--text-muted)', lineHeight:1 }}>
+          {mod>0?'+':''}{mod}
+        </div>
+        <div style={{ width:1, height:20, background:'var(--bg-border)' }} />
+        <div style={{ fontSize:18, color:'var(--text-muted)' }}>VS</div>
+        <div style={{ width:1, height:20, background:'var(--bg-border)' }} />
+      </div>
+
+      {/* Defense */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', padding:14, gap:8, borderLeft:'1px solid var(--bg-border)' }}>
+        <div style={{ display:'flex', gap:10 }}>
+          <div style={{ flexShrink:0, animation: animating?'snap-shake 350ms 100ms both':'none' }}>
+            <PlayCard card={defCard} role="defense" />
+          </div>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:6 }}>
+            <div style={{ background:'var(--bg-raised)', borderRadius:6, padding:'8px 10px' }}>
+              <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>EFFECTIVE POWER</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:36, color: defWins?'var(--success-green)':offWins?'var(--blitz-red)':'var(--text-primary)', lineHeight:1, animation: animating?'snap-flash 450ms 80ms both':'none' }}>
+                {defFinal}
+              </div>
+              <div style={{ marginTop:6, height:4, background:'var(--bg-border)', borderRadius:2, overflow:'hidden' }}>
+                <div style={{ height:'100%', background: defWins?'var(--storm-blue)':'var(--bg-overlay)', borderRadius:2, width: phase==='resolved'?`${Math.min(100,defFinal/30*100)}%`:'0%', transition:'width 700ms 200ms cubic-bezier(0,0,0.2,1)' }} />
+              </div>
+            </div>
+            <div style={{ background:'var(--bg-raised)', borderRadius:6, padding:'8px 10px', flex:1 }}>
+              <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>DEF TENDENCY</div>
+              {DEF_TENDENCIES.map(t => (
+                <div key={t.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+                  <span style={{ fontSize:10, color:'var(--text-secondary)' }}>{t.label}</span>
+                  <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                    <div style={{ width:40, height:3, background:'var(--bg-border)', borderRadius:2, overflow:'hidden' }}>
+                      <div style={{ width:`${t.pct}%`, height:'100%', background:'var(--storm-blue)', borderRadius:2 }} />
+                    </div>
+                    <span style={{ fontSize:9, color:'var(--text-primary)', fontWeight:600, width:24, textAlign:'right' }}>{t.pct}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── CARD HAND ──────────────────────────────────────────────────────────────
+
+function CardHandArea({ cards, selectedCard, onSelectCard, phase, onSnap, onNextPlay, dp }) {
+  return (
+    <div style={{ background:'var(--bg-surface)', borderTop:'1px solid var(--bg-border)', padding:'10px 14px', flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
+        {/* Playmaker */}
+        <div style={{ flexShrink:0 }}>
+          <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.07em', textAlign:'center', marginBottom:4 }}>PLAYMAKER</div>
+          <div style={{ background:'var(--bg-raised)', border:'2px solid var(--blitz-red)', borderRadius:10, padding:'8px 6px', width:82, display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+            <div style={{ width:36, height:36, borderRadius:6, background:'rgba(212,34,42,0.15)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <svg width={32} height={32} viewBox="0 0 32 32"><ellipse cx={16} cy={10} rx={5} ry={5} fill="var(--blitz-red)" opacity={0.9}/><path d="M 8 28 L 10 16 L 22 16 L 24 28" fill="var(--blitz-red)" opacity={0.7}/></svg>
+            </div>
+            <div style={{ fontSize:8, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>QB</div>
+            <div style={{ fontSize:9, color:'var(--text-secondary)' }}>J. Hawkins</div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--gold)' }}>1.25×</div>
+          </div>
+        </div>
+        {/* Cards */}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:4 }}>SELECT A PLAY CARD</div>
+          <div className="card-row">
+            {cards.map(c => (
+              <div key={c.id} onClick={() => phase==='select' && onSelectCard(c)} style={{ flexShrink:0 }}>
+                <PlayCard card={c} role="offense" selected={selectedCard?.id===c.id} disabled={phase==='resolved'} />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Actions */}
+        <div style={{ flexShrink:0, display:'flex', flexDirection:'column', gap:8, width:100 }}>
+          <div style={{ background:'var(--bg-raised)', border:'1px solid var(--bg-border)', borderRadius:8, padding:'7px 10px', textAlign:'center' }}>
+            <div style={{ fontSize:9, color:'var(--text-muted)', letterSpacing:'0.06em' }}>THIS DRIVE</div>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:4, marginTop:1 }}>
+              <span style={{ color:'var(--gold)', fontSize:11 }}>⬡</span>
+              <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:18, color:'var(--gold)' }}>{dp}</span>
+              <span style={{ fontSize:9, color:'var(--text-muted)' }}>DP</span>
+            </div>
+          </div>
+          {phase === 'select' && (
+            <button onClick={onSnap} disabled={!selectedCard} style={{
+              padding:'11px 0', background: selectedCard?'var(--blitz-red)':'var(--bg-overlay)',
+              border:`2px solid ${selectedCard?'var(--blitz-red)':'var(--bg-border)'}`,
+              color: selectedCard?'white':'var(--text-muted)',
+              fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, letterSpacing:'0.08em',
+              borderRadius:6, cursor: selectedCard?'pointer':'not-allowed',
+              boxShadow: selectedCard?'var(--glow-red)':'none', transition:'all 150ms',
+            }}>⚡ SNAP</button>
+          )}
+          {phase === 'resolved' && (
+            <button onClick={onNextPlay} style={{ padding:'11px 0', background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-secondary)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, letterSpacing:'0.06em', borderRadius:6, cursor:'pointer' }}>
+              NEXT PLAY →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MODALS ─────────────────────────────────────────────────────────────────
+
+function TouchdownModal({ onConfirm }) {
+  const [sel, setSel] = React.useState(null);
+  const colors = { 'ADD CARD':'var(--rogue-purple)', 'GAME BOOST':'var(--gold)', PLAYMAKER:'var(--storm-blue)' };
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(5px)', animation:'fadeIn 250ms' }}>
+      <div style={{ width:'min(520px,92vw)', background:'var(--bg-surface)', border:'1px solid var(--bg-border)', borderRadius:16, overflow:'hidden', boxShadow:'var(--shadow-elevated)', animation:'slideUp 350ms cubic-bezier(0.175,0.885,0.32,1.275)' }}>
+        <div style={{ padding:'22px 24px 16px', textAlign:'center', borderBottom:'1px solid var(--bg-border)', background:'linear-gradient(180deg, rgba(232,168,32,0.12) 0%, transparent 100%)' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:46, color:'var(--gold)', letterSpacing:'0.04em', textShadow:'0 0 40px var(--gold-glow)', animation:'td-flash 1.2s 3', lineHeight:1 }}>TOUCHDOWN!</div>
+          <div style={{ fontSize:14, color:'var(--text-secondary)', marginTop:6 }}>BLITZ FC SCORES! · Pick 1 Reward</div>
+        </div>
+        <div style={{ display:'flex', gap:12, padding:'16px 20px' }}>
+          {REWARDS.map(r => {
+            const c = colors[r.type] || 'var(--text-muted)';
+            const isSel = sel?.id === r.id;
+            return (
+              <div key={r.id} onClick={() => setSel(r)} style={{ flex:1, background:'var(--bg-raised)', border:`2px solid ${isSel?c:'var(--bg-border)'}`, borderRadius:12, padding:'12px 10px', cursor:'pointer', boxShadow: isSel?`0 0 18px ${c}44`:'none', transition:'all 200ms' }}>
+                <div style={{ fontSize:9, color:c, textTransform:'uppercase', letterSpacing:'0.1em', fontWeight:600, marginBottom:4 }}>{r.type}</div>
+                <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:'var(--text-primary)', lineHeight:1, marginBottom:8 }}>{r.title}</div>
+                <div style={{ height:52, background:'var(--bg-surface)', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                  {r.type==='GAME BOOST' && <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:36, color:'var(--gold)' }}>+{r.value}</div>}
+                  {r.type==='ADD CARD' && <svg width={36} height={36} viewBox="0 0 40 40"><circle cx={20} cy={20} r={16} stroke="var(--rogue-purple)" strokeWidth={2} fill="rgba(168,85,247,0.15)"/><circle cx={20} cy={20} r={6} fill="var(--rogue-purple)" opacity={0.7}/></svg>}
+                  {r.type==='PLAYMAKER' && <svg width={36} height={36} viewBox="0 0 40 40"><ellipse cx={20} cy={11} rx={7} ry={7} fill="var(--storm-blue)" opacity={0.9}/><path d="M 10 36 L 12 20 L 20 17 L 28 20 L 30 36" fill="var(--storm-blue)" opacity={0.7}/></svg>}
+                </div>
+                <div style={{ fontSize:10, color:'var(--text-secondary)', lineHeight:1.4 }}>{r.description}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding:'0 20px 20px' }}>
+          <button onClick={() => sel && onConfirm(sel)} disabled={!sel} style={{ width:'100%', padding:'13px', background: sel?'var(--blitz-red)':'var(--bg-overlay)', border:`2px solid ${sel?'var(--blitz-red)':'var(--bg-border)'}`, color: sel?'white':'var(--text-muted)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:15, letterSpacing:'0.08em', borderRadius:6, cursor: sel?'pointer':'not-allowed', boxShadow: sel?'var(--glow-red)':'none', transition:'all 150ms' }}>
+            CLAIM REWARD →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InterceptionModal({ onContinue }) {
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, backdropFilter:'blur(5px)', animation:'fadeIn 250ms' }}>
+      <div style={{ width:'min(380px,90vw)', background:'var(--bg-surface)', border:'2px solid var(--blitz-red)', borderRadius:16, padding:'32px 24px 24px', textAlign:'center', boxShadow:'0 0 40px rgba(212,34,42,0.25)', animation:'slideUp 350ms cubic-bezier(0.175,0.885,0.32,1.275)' }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:38, color:'var(--blitz-red)', letterSpacing:'0.06em', lineHeight:1, marginBottom:8 }}>INTERCEPTED!</div>
+        <div style={{ fontSize:13, color:'var(--text-secondary)', marginBottom:20 }}>Storm SC takes possession · 15-yard return</div>
+        <div style={{ background:'var(--bg-raised)', borderRadius:12, padding:'14px 20px', marginBottom:20 }}>
+          <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.06em', marginBottom:4 }}>POSSESSION FLIPS TO</div>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--storm-blue-bright)' }}>STORM SC — OFFENSE</div>
+        </div>
+        <button onClick={onContinue} style={{ width:'100%', padding:'12px', background:'var(--bg-raised)', border:'1px solid var(--bg-border)', color:'var(--text-primary)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, letterSpacing:'0.06em', borderRadius:6, cursor:'pointer' }}>
+          CONTINUE →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── SEASON STRIP ───────────────────────────────────────────────────────────
+
+function SeasonStrip() {
+  return (
+    <div style={{ background:'var(--bg-deep)', borderTop:'1px solid var(--bg-border)', padding:'5px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+      <div style={{ fontSize:10, color:'var(--text-muted)' }}>SEASON 1 · WEEK 2</div>
+      <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+        {[1,2,3,4,5].map(g => (
+          <div key={g} style={{ display:'flex', alignItems:'center', gap:4 }}>
+            {g > 1 && <div style={{ width:18, height:1, background: g<=2?'var(--success-green)':'var(--bg-border)' }} />}
+            <div style={{ width:10, height:10, borderRadius:'50%', background: g===1?'var(--success-green)':g===2?'var(--blitz-red)':'var(--bg-border)' }} />
+            {g<=2 && <div style={{ fontSize:8, color: g===1?'var(--success-green)':'var(--blitz-red)', fontWeight:700 }}>{g===1?'W':'NOW'}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize:10, color:'var(--text-secondary)', fontFamily:'var(--font-display)', fontWeight:600 }}>RECORD 1-0</div>
+    </div>
+  );
+}
+
+// ── MAIN APP ───────────────────────────────────────────────────────────────
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showTendencies": true,
+  "startingBallPos": 42,
+  "startingDown": 1
+}/*EDITMODE-END*/;
+
+function GameplayScreen() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [gs, setGs] = React.useState({
+    homeScore:14, awayScore:7, homeRecord:'7-0', awayRecord:'6-1',
+    quarter:2, gameTime:'03:21', play:5, totalPlays:8,
+    dp:5, redraws:2, down:1, distance:10, ballPos:42, playClock:16,
+  });
+  const [selectedCard, setSelectedCard] = React.useState(null);
+  const [phase, setPhase] = React.useState('select');
+  const [result, setResult] = React.useState(null);
+  const [modal, setModal] = React.useState(null);
+
+  React.useEffect(() => {
+    if (phase !== 'select' || !selectedCard || gs.playClock <= 0) return;
+    const t = setTimeout(() => setGs(s => ({ ...s, playClock: s.playClock - 1 })), 1000);
+    return () => clearTimeout(t);
+  }, [gs.playClock, phase, selectedCard]);
+
+  const handleSnap = () => {
+    if (!selectedCard || phase !== 'select') return;
+    setPhase('animating');
+    setTimeout(() => {
+      const mod = getMatchupMod(selectedCard, DEF_CARD);
+      const rawPow = selectedCard.special === 'hailmary' ? (Math.random() > 0.5 ? 25 : 0) : (selectedCard.power || 0);
+      const offFinal = rawPow + mod, defFinal = DEF_CARD.power;
+      const margin = offFinal - defFinal;
+      let yards = margin > 0 ? Math.max(1, Math.round(margin * 1.2 + 2)) : margin < 0 ? -Math.max(1, Math.round(Math.abs(margin))) : 1;
+      const newPos = Math.max(1, Math.min(99, gs.ballPos + yards));
+      const firstDown = yards >= gs.distance;
+      const touchdown = newPos >= 95;
+      const interception = selectedCard.type==='PASS' && margin < -5 && Math.random() < 0.15;
+      setResult({ yards, margin, firstDown: firstDown && !touchdown, touchdown, interception });
+      setGs(s => ({ ...s, ballPos: newPos, dp: s.dp + (yards > 0 ? 1 : 0), down: firstDown ? 1 : s.down + 1, distance: firstDown ? 10 : Math.max(1, s.distance - yards), homeScore: touchdown ? s.homeScore + 7 : s.homeScore, playClock: 16 }));
+      setPhase('resolved');
+      if (touchdown) setTimeout(() => setModal('touchdown'), 800);
+      else if (interception) setTimeout(() => setModal('interception'), 600);
+    }, 400);
+  };
+
+  const nextPlay = () => {
+    setSelectedCard(null); setPhase('select'); setResult(null);
+    setGs(s => ({ ...s, play: Math.min(s.play + 1, s.totalPlays), playClock: 16 }));
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'var(--bg-void)' }}>
+      <ScoreboardBar state={gs} />
+      <FieldArea ballPos={gs.ballPos} down={gs.down} distance={gs.distance} playClock={gs.playClock} />
+      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+        <MatchupPanel offCard={selectedCard} defCard={DEF_CARD} phase={phase} result={result} animating={phase==='animating'} />
+      </div>
+      <CardHandArea cards={OFFENSE_CARDS} selectedCard={selectedCard} onSelectCard={setSelectedCard}
+        phase={phase==='animating'?'select':phase} onSnap={handleSnap} onNextPlay={nextPlay} dp={gs.dp} />
+      <SeasonStrip />
+      {modal==='touchdown'    && <TouchdownModal    onConfirm={() => { setModal(null); nextPlay(); }} />}
+      {modal==='interception' && <InterceptionModal onContinue={() => { setModal(null); nextPlay(); }} />}
+      <TweaksPanel>
+        <TweakSection title="Game State">
+          <TweakToggle label="Show Tendencies" value={tweaks.showTendencies} onChange={v => setTweak('showTendencies', v)} />
+        </TweakSection>
+        <TweakSection title="Trigger Events">
+          <TweakButton label="Touchdown Modal"      onClick={() => setModal('touchdown')} />
+          <TweakButton label="Interception Modal"   onClick={() => setModal('interception')} />
+          <TweakButton label="Reset to 4th Down"    onClick={() => setGs(s => ({ ...s, down:4, distance:3, playClock:8 }))} />
+          <TweakButton label="Move to Red Zone"     onClick={() => setGs(s => ({ ...s, ballPos:88, down:1, distance:10 }))} />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<GameplayScreen />);
+</script>
+</body>
+</html>

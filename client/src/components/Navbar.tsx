@@ -65,6 +65,18 @@ function Navbar() {
                 Season
               </Link>
               <Link
+                to="/how-to-play"
+                className={`text-sm transition-colors ${
+                  isActive('/how-to-play') ? '' : 'opacity-80 hover:opacity-100'
+                }`}
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  color: isActive('/how-to-play') ? 'var(--blue)' : 'var(--ink)',
+                }}
+              >
+                How to play
+              </Link>
+              <Link
                 to="/dashboard"
                 className={`text-sm transition-colors ${
                   isActive('/dashboard') ? '' : 'opacity-80 hover:opacity-100'

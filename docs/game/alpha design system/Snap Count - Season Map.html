@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snap Count — Season Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="snap-count-tokens.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; background: var(--bg-void); color: var(--text-primary); font-family: var(--font-body); overflow: hidden; }
+  #root { width: 100%; height: 100%; }
+  button { font-family: var(--font-display); cursor: pointer; }
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: var(--bg-border); border-radius: 2px; }
+
+  @keyframes slideUp    { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes slideIn    { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes fadeIn     { from { opacity:0; } to { opacity:1; } }
+  @keyframes coinFlip   { 0%   { transform: rotateY(0deg) scale(1); }
+                          25%  { transform: rotateY(90deg) scale(1.1); }
+                          50%  { transform: rotateY(180deg) scale(1.2); }
+                          75%  { transform: rotateY(270deg) scale(1.1); }
+                          100% { transform: rotateY(360deg) scale(1); } }
+  @keyframes nodeGlow   { 0%,100%{ box-shadow:0 0 12px var(--blitz-red-glow); } 50%{ box-shadow:0 0 28px var(--blitz-red-glow), 0 0 48px var(--blitz-red-glow); } }
+  @keyframes pathPulse  { 0%,100%{ opacity:0.5; } 50%{ opacity:1; } }
+  @keyframes starPop    { 0%{ transform:scale(0) rotate(-20deg); opacity:0; } 60%{ transform:scale(1.2) rotate(5deg); opacity:1; } 100%{ transform:scale(1) rotate(0deg); opacity:1; } }
+  @keyframes scanline   { 0%{ transform:translateY(-100%); } 100%{ transform:translateY(100vh); } }
+
+  .map-node { transition: transform 200ms, box-shadow 200ms; cursor: pointer; }
+  .map-node:hover:not(.locked):not(.current) { transform: scale(1.08); }
+  .map-node.current { animation: nodeGlow 2s infinite; }
+
+  .coin-face { transition: all 300ms cubic-bezier(0.175,0.885,0.32,1.275); }
+  .role-card { transition: all 200ms cubic-bezier(0.175,0.885,0.32,1.275); cursor: pointer; }
+  .role-card:hover { transform: translateY(-4px); }
+  .role-card.selected { transform: translateY(-6px) scale(1.02); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="snap-count-components.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+
+const SEASON_NODES = [
+  { id:1, game:1, opponent:'THUNDER FC',  opponentLogo:'⚡', opponentRecord:'4-3', result:'W', score:'21-14', locked:false, completed:true  },
+  { id:2, game:2, opponent:'STORM SC',    opponentLogo:'🌩', opponentRecord:'6-1', result:null, score:null,   locked:false, completed:false, current:true },
+  { id:3, game:3, opponent:'IRON WALL',   opponentLogo:'🛡', opponentRecord:'5-2', result:null, score:null,   locked:true,  completed:false },
+  { id:4, game:4, opponent:'NOVA FC',     opponentLogo:'✦',  opponentRecord:'7-0', result:null, score:null,   locked:true,  completed:false },
+  { id:5, game:5, opponent:'APEX SC',     opponentLogo:'🔺', opponentRecord:'8-0', result:null, score:null,   locked:true,  completed:false, finale:true },
+];
+
+const OPPONENTS_DETAIL = {
+  2: { strengths:['Zone coverage','Run defense'], weaknesses:['Deep passes','Option plays'], cpuPoolSize:12, difficultyLabel:'HARD' },
+};
+
+// ── SEASON MAP ────────────────────────────────────────────────────────────
+
+function SeasonMap({ nodes, onSelectNode, selectedNode }) {
+  return (
+    <div style={{ position:'relative', width:'100%', padding:'0 40px', display:'flex', alignItems:'center' }}>
+      {/* Connecting path */}
+      <svg style={{ position:'absolute', left:0, right:0, top:'50%', transform:'translateY(-50%)', width:'100%', height:8, zIndex:0 }} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="pathGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="var(--success-green)" stopOpacity="0.8"/>
+            <stop offset="22%" stopColor="var(--success-green)" stopOpacity="0.8"/>
+            <stop offset="22%" stopColor="var(--blitz-red)" stopOpacity="0.9"/>
+            <stop offset="40%" stopColor="var(--blitz-red)" stopOpacity="0.9"/>
+            <stop offset="40%" stopColor="var(--bg-border)" stopOpacity="0.5"/>
+            <stop offset="100%" stopColor="var(--bg-border)" stopOpacity="0.3"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="100%" height="100%" fill="url(#pathGrad)" rx="4"/>
+      </svg>
+
+      {/* Nodes */}
+      <div style={{ display:'flex', justifyContent:'space-between', width:'100%', position:'relative', zIndex:1 }}>
+        {nodes.map((node, idx) => (
+          <NodeItem key={node.id} node={node} idx={idx}
+            isSelected={selectedNode?.id === node.id}
+            onSelect={() => !node.locked && onSelectNode(node)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NodeItem({ node, idx, isSelected, onSelect }) {
+  const isWin  = node.result === 'W';
+  const isLoss = node.result === 'L';
+  const isCurrent = node.current;
+  const isLocked  = node.locked;
+  const isFinale  = node.finale;
+
+  const borderColor = isWin ? 'var(--success-green)' : isCurrent ? 'var(--blitz-red)' : isLocked ? 'var(--bg-border)' : 'var(--text-muted)';
+  const bgColor     = isWin ? 'rgba(34,197,94,0.15)' : isCurrent ? 'rgba(212,34,42,0.15)' : 'var(--bg-surface)';
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+      {/* Node circle */}
+      <div
+        className={`map-node ${isCurrent?'current':''} ${isLocked?'locked':''}`}
+        onClick={onSelect}
+        style={{
+          width: isFinale ? 72 : 64,
+          height: isFinale ? 72 : 64,
+          borderRadius:'50%',
+          background: bgColor,
+          border: `3px solid ${isSelected ? 'var(--gold)' : borderColor}`,
+          display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
+          cursor: isLocked ? 'default' : 'pointer',
+          opacity: isLocked ? 0.45 : 1,
+          boxShadow: isSelected ? 'var(--glow-gold)' : isCurrent ? '0 0 20px var(--blitz-red-glow)' : 'none',
+          position:'relative',
+        }}>
+        {isLocked ? (
+          <span style={{ fontSize:20, opacity:0.5 }}>🔒</span>
+        ) : isWin ? (
+          <span style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:'var(--success-green)', animation:'starPop 400ms both' }}>W</span>
+        ) : isLoss ? (
+          <span style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:20, color:'var(--blitz-red)' }}>L</span>
+        ) : isCurrent ? (
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:11, color:'var(--blitz-red)', letterSpacing:'0.06em' }}>GAME</div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--text-primary)', lineHeight:1 }}>{node.game}</div>
+          </div>
+        ) : (
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--text-muted)', lineHeight:1 }}>{node.game}</div>
+          </div>
+        )}
+        {isFinale && !isLocked && (
+          <div style={{ position:'absolute', top:-8, right:-8, width:20, height:20, borderRadius:'50%', background:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10 }}>🏆</div>
+        )}
+      </div>
+
+      {/* Label below */}
+      <div style={{ textAlign:'center', maxWidth:90 }}>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color: isCurrent ? 'var(--text-primary)' : isLocked ? 'var(--text-muted)' : 'var(--text-secondary)', letterSpacing:'0.04em', lineHeight:1.2 }}>
+          {node.opponent}
+        </div>
+        {node.result && (
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color: isWin ? 'var(--success-green)' : 'var(--blitz-red)', marginTop:2 }}>{node.score}</div>
+        )}
+        {isCurrent && !node.result && (
+          <div style={{ fontSize:9, color:'var(--blitz-red)', fontWeight:600, letterSpacing:'0.06em', marginTop:2, animation:'pathPulse 1.5s infinite' }}>NEXT</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── GAME PREVIEW PANEL ────────────────────────────────────────────────────
+
+function GamePreviewPanel({ node, onStartGame }) {
+  if (!node) return (
+    <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-muted)', fontSize:13, fontStyle:'italic' }}>
+      Select a game node
+    </div>
+  );
+
+  const detail = OPPONENTS_DETAIL[node.game] || {};
+  const diffColors = { 'EASY':'var(--success-green)', 'MEDIUM':'var(--gold)', 'HARD':'var(--blitz-red)', 'ELITE':'var(--rogue-purple-bright)' };
+  const diffColor = diffColors[detail.difficultyLabel] || 'var(--text-muted)';
+
+  return (
+    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:0, overflow:'hidden', animation:'slideIn 300ms both' }}>
+      {/* Opponent header */}
+      <div style={{ padding:'20px 24px 16px', borderBottom:'1px solid var(--bg-border)', background:'linear-gradient(135deg, rgba(212,34,42,0.06) 0%, transparent 60%)' }}>
+        <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:6 }}>GAME {node.game} OF 5</div>
+        <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:12 }}>
+          <div style={{ width:56, height:56, borderRadius:12, background:'rgba(21,101,192,0.2)', border:'2px solid var(--storm-blue)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26 }}>
+            {node.opponentLogo}
+          </div>
+          <div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:26, color:'var(--text-primary)', letterSpacing:'0.02em', lineHeight:1 }}>{node.opponent}</div>
+            <div style={{ fontSize:12, color:'var(--text-secondary)', marginTop:4 }}>Record: {node.opponentRecord}</div>
+          </div>
+          {detail.difficultyLabel && (
+            <div style={{ marginLeft:'auto', padding:'5px 14px', borderRadius:20, background:`${diffColor}22`, border:`1.5px solid ${diffColor}`, fontFamily:'var(--font-display)', fontWeight:700, fontSize:12, color:diffColor, letterSpacing:'0.08em' }}>
+              {detail.difficultyLabel}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Intel */}
+      {detail.strengths && (
+        <div style={{ padding:'14px 24px', borderBottom:'1px solid var(--bg-border)', display:'flex', gap:20 }}>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>CPU STRENGTHS</div>
+            {detail.strengths.map(s => (
+              <div key={s} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                <div style={{ width:5, height:5, borderRadius:'50%', background:'var(--blitz-red)', flexShrink:0 }} />
+                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>{s}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>EXPLOITABLE</div>
+            {detail.weaknesses?.map(s => (
+              <div key={s} style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                <div style={{ width:5, height:5, borderRadius:'50%', background:'var(--success-green)', flexShrink:0 }} />
+                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>{s}</span>
+              </div>
+            ))}
+          </div>
+          {detail.cpuPoolSize && (
+            <div>
+              <div style={{ fontSize:9, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>CPU POOL</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:22, color:'var(--text-primary)' }}>{detail.cpuPoolSize}</div>
+              <div style={{ fontSize:10, color:'var(--text-muted)' }}>defense cards</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Completed game result */}
+      {node.completed && node.result && (
+        <div style={{ padding:'14px 24px', background:'rgba(34,197,94,0.05)', borderBottom:'1px solid var(--bg-border)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--success-green)' }}>W</div>
+            <div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:18, color:'var(--text-primary)' }}>{node.score}</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)' }}>Game completed</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ flex:1 }} />
+
+      {/* CTA */}
+      {node.current && !node.locked && (
+        <div style={{ padding:'16px 24px', borderTop:'1px solid var(--bg-border)' }}>
+          <button onClick={onStartGame} style={{
+            width:'100%', padding:'14px',
+            background:'var(--blitz-red)', border:'2px solid var(--blitz-red)',
+            color:'white', fontFamily:'var(--font-display)', fontWeight:700,
+            fontSize:16, letterSpacing:'0.08em', borderRadius:8, cursor:'pointer',
+            boxShadow:'var(--glow-red)', transition:'all 150ms',
+          }}>
+            ⚡ START GAME {node.game}
+          </button>
+        </div>
+      )}
+      {node.completed && (
+        <div style={{ padding:'16px 24px', borderTop:'1px solid var(--bg-border)' }}>
+          <button style={{ width:'100%', padding:'12px', background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-muted)', fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, letterSpacing:'0.06em', borderRadius:6 }}>
+            VIEW GAME RECAP
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── COIN TOSS SCREEN ──────────────────────────────────────────────────────
+
+function CoinTossScreen({ onChoose, onBack }) {
+  const [flipping, setFlipping] = React.useState(false);
+  const [chosen, setChosen] = React.useState(null);
+  const [result, setResult] = React.useState(null); // 'offense' | 'defense'
+  const [phase, setPhase] = React.useState('choose'); // choose | flipping | result
+
+  const handleChoose = (role) => {
+    setChosen(role);
+    setPhase('flipping');
+    setFlipping(true);
+    // Simulate coin toss
+    setTimeout(() => {
+      const won = Math.random() > 0.5;
+      const roleResult = won ? role : (role === 'offense' ? 'defense' : 'offense');
+      setResult(roleResult);
+      setFlipping(false);
+      setPhase('result');
+    }, 1800);
+  };
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.92)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', zIndex:500, backdropFilter:'blur(8px)', animation:'fadeIn 300ms' }}>
+
+      {phase === 'choose' && (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:32, animation:'slideUp 400ms both' }}>
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:48, color:'var(--text-primary)', letterSpacing:'0.04em', lineHeight:1 }}>COIN TOSS</div>
+            <div style={{ fontSize:14, color:'var(--text-secondary)', marginTop:8 }}>Choose your opening role for this drive</div>
+          </div>
+
+          {/* Coin visual */}
+          <div style={{ width:100, height:100, borderRadius:'50%', background:'linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%)', border:'4px solid var(--gold-bright)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'var(--glow-gold)', fontSize:40 }}>
+            🏈
+          </div>
+
+          <div style={{ display:'flex', gap:20 }}>
+            {/* Offense choice */}
+            <div className="role-card" onClick={() => handleChoose('offense')} style={{
+              width:200, background:'var(--bg-surface)', border:'2px solid var(--blitz-red)',
+              borderRadius:16, padding:'24px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12,
+              boxShadow:'0 0 0 0 var(--blitz-red-glow)',
+            }}>
+              <div style={{ width:64, height:64, borderRadius:12, background:'rgba(212,34,42,0.2)', border:'2px solid var(--blitz-red)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width={48} height={48} viewBox="0 0 48 48">
+                  <ellipse cx={24} cy={14} rx={8} ry={8} fill="var(--blitz-red)" opacity={0.9}/>
+                  <path d="M 12 44 L 15 24 L 24 20 L 33 24 L 36 44" fill="var(--blitz-red)" opacity={0.7}/>
+                  <line x1={24} y1={20} x2={24} y2={44} stroke="var(--blitz-red)" strokeWidth={2} opacity={0.4}/>
+                </svg>
+              </div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--blitz-red)', letterSpacing:'0.04em' }}>OFFENSE</div>
+              <div style={{ fontSize:11, color:'var(--text-secondary)', textAlign:'center', lineHeight:1.5 }}>Drive toward the end zone. Score touchdowns.</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:4, width:'100%' }}>
+                {['Use Run / Pass / Option cards','Build first downs','Score = 7 pts + reward'].map(t => (
+                  <div key={t} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
+                    <span style={{ color:'var(--blitz-red)', fontSize:10, marginTop:1, flexShrink:0 }}>▶</span>
+                    <span style={{ fontSize:10, color:'var(--text-muted)', lineHeight:1.4 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* VS divider */}
+            <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6 }}>
+              <div style={{ width:1, height:60, background:'var(--bg-border)' }} />
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:16, color:'var(--text-muted)' }}>OR</div>
+              <div style={{ width:1, height:60, background:'var(--bg-border)' }} />
+            </div>
+
+            {/* Defense choice */}
+            <div className="role-card" onClick={() => handleChoose('defense')} style={{
+              width:200, background:'var(--bg-surface)', border:'2px solid var(--storm-blue)',
+              borderRadius:16, padding:'24px 20px', display:'flex', flexDirection:'column', alignItems:'center', gap:12,
+            }}>
+              <div style={{ width:64, height:64, borderRadius:12, background:'rgba(21,101,192,0.2)', border:'2px solid var(--storm-blue)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <svg width={48} height={48} viewBox="0 0 48 48">
+                  <path d="M 24 6 L 40 14 L 40 28 C 40 36 32 42 24 46 C 16 42 8 36 8 28 L 8 14 Z" fill="rgba(21,101,192,0.3)" stroke="var(--storm-blue)" strokeWidth={2}/>
+                  <circle cx={24} cy={26} r={6} fill="var(--storm-blue-bright)" opacity={0.7}/>
+                </svg>
+              </div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:22, color:'var(--storm-blue-bright)', letterSpacing:'0.04em' }}>DEFENSE</div>
+              <div style={{ fontSize:11, color:'var(--text-secondary)', textAlign:'center', lineHeight:1.5 }}>Stop the CPU offense. Force turnovers.</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:4, width:'100%' }}>
+                {['Use Zone / Man / Blitz cards','Force punts & turnovers','Intercept = possession flip'].map(t => (
+                  <div key={t} style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
+                    <span style={{ color:'var(--storm-blue-bright)', fontSize:10, marginTop:1, flexShrink:0 }}>▶</span>
+                    <span style={{ fontSize:10, color:'var(--text-muted)', lineHeight:1.4 }}>{t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <button onClick={onBack} style={{ background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-muted)', padding:'8px 20px', borderRadius:6, fontSize:12, letterSpacing:'0.06em' }}>
+            ← BACK TO SEASON
+          </button>
+        </div>
+      )}
+
+      {phase === 'flipping' && (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:24, animation:'fadeIn 200ms' }}>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:16, color:'var(--text-muted)', letterSpacing:'0.1em' }}>CALLING {chosen?.toUpperCase()}...</div>
+          <div style={{
+            width:120, height:120, borderRadius:'50%',
+            background:'linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%)',
+            border:'4px solid var(--gold-bright)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:48, boxShadow:'var(--glow-gold)',
+            animation:'coinFlip 1.8s ease-in-out',
+          }}>🪙</div>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-secondary)', letterSpacing:'0.06em', animation:'pathPulse 0.6s infinite' }}>FLIPPING...</div>
+        </div>
+      )}
+
+      {phase === 'result' && (
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:24, animation:'slideUp 400ms both' }}>
+          <div style={{ width:100, height:100, borderRadius:'50%', background:'linear-gradient(135deg, var(--gold) 0%, var(--gold-dim) 100%)', border:'4px solid var(--gold-bright)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'var(--glow-gold)', fontSize:40 }}>
+            🪙
+          </div>
+
+          <div style={{ textAlign:'center' }}>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:14, color:'var(--text-muted)', letterSpacing:'0.12em', marginBottom:8 }}>
+              {result === chosen ? 'YOU WIN THE TOSS!' : 'CPU WINS THE TOSS'}
+            </div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:52, color: result === 'offense' ? 'var(--blitz-red)' : 'var(--storm-blue-bright)', letterSpacing:'0.04em', lineHeight:1, textShadow: result === 'offense' ? '0 0 30px var(--blitz-red-glow)' : '0 0 30px var(--storm-blue-glow)' }}>
+              YOU OPEN ON {result?.toUpperCase()}
+            </div>
+            <div style={{ fontSize:13, color:'var(--text-secondary)', marginTop:10 }}>
+              {result === 'offense' ? 'Blitz FC drives first. Build momentum early.' : 'Storm SC gets the ball. Shut them down and take possession.'}
+            </div>
+          </div>
+
+          {/* Role summary */}
+          <div style={{ display:'flex', gap:12 }}>
+            <div style={{ background: result === 'offense' ? 'rgba(212,34,42,0.15)' : 'var(--bg-surface)', border:`2px solid ${result === 'offense' ? 'var(--blitz-red)' : 'var(--bg-border)'}`, borderRadius:10, padding:'12px 20px', textAlign:'center', minWidth:130 }}>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color: result === 'offense' ? 'var(--blitz-red)' : 'var(--text-muted)', letterSpacing:'0.08em', marginBottom:4 }}>YOU</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:18, color: result === 'offense' ? 'var(--text-primary)' : 'var(--text-muted)' }}>{result === 'offense' ? 'OFFENSE' : 'DEFENSE'}</div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', fontSize:16, color:'var(--text-muted)' }}>VS</div>
+            <div style={{ background: result === 'defense' ? 'rgba(21,101,192,0.15)' : 'var(--bg-surface)', border:`2px solid ${result === 'defense' ? 'var(--storm-blue)' : 'var(--bg-border)'}`, borderRadius:10, padding:'12px 20px', textAlign:'center', minWidth:130 }}>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:11, color: result === 'defense' ? 'var(--storm-blue-bright)' : 'var(--text-muted)', letterSpacing:'0.08em', marginBottom:4 }}>CPU</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:18, color: result === 'defense' ? 'var(--text-primary)' : 'var(--text-muted)' }}>{result === 'defense' ? 'OFFENSE' : 'DEFENSE'}</div>
+            </div>
+          </div>
+
+          <div style={{ display:'flex', gap:12 }}>
+            <button onClick={() => onChoose(result)} style={{
+              padding:'14px 40px', background:'var(--blitz-red)', border:'2px solid var(--blitz-red)',
+              color:'white', fontFamily:'var(--font-display)', fontWeight:700, fontSize:16,
+              letterSpacing:'0.08em', borderRadius:8, cursor:'pointer', boxShadow:'var(--glow-red)',
+            }}>
+              ⚡ BEGIN GAME
+            </button>
+            <button onClick={() => setPhase('choose')} style={{
+              padding:'14px 24px', background:'transparent', border:'1px solid var(--bg-border)',
+              color:'var(--text-muted)', fontFamily:'var(--font-display)', fontWeight:700,
+              fontSize:13, letterSpacing:'0.06em', borderRadius:8,
+            }}>
+              RETOSS
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── MAIN SEASON SCREEN ────────────────────────────────────────────────────
+
+const SM_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "showCoinToss": false,
+  "currentGame": 2,
+  "record": "1-0"
+}/*EDITMODE-END*/;
+
+function SeasonScreen() {
+  const [tweaks, setTweak] = useTweaks(SM_TWEAK_DEFAULTS);
+  const [selectedNode, setSelectedNode] = React.useState(SEASON_NODES[1]); // current game pre-selected
+  const [showCoinToss, setShowCoinToss] = React.useState(false);
+  const [showTweaks, setShowTweaks] = React.useState(false);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setShowTweaks(true);
+      if (e.data?.type === '__deactivate_edit_mode') setShowTweaks(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100vh', background:'var(--bg-void)', overflow:'hidden' }}>
+
+      {/* Top bar */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 20px', background:'var(--bg-deep)', borderBottom:'1px solid var(--bg-border)', flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:32, height:32, borderRadius:6, background:'rgba(212,34,42,0.2)', border:'2px solid var(--blitz-red)', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--font-display)', fontWeight:900, fontSize:16, color:'var(--blitz-red)' }}>B</div>
+          <div>
+            <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--text-primary)' }}>BLITZ FC</div>
+            <div style={{ fontSize:9, color:'var(--text-muted)' }}>Season 1</div>
+          </div>
+        </div>
+        <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:18, color:'var(--text-primary)', letterSpacing:'0.06em' }}>
+          SEASON MAP
+        </div>
+        <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+          <div style={{ display:'flex', gap:4, alignItems:'center', background:'var(--gold-subtle)', border:'1px solid var(--gold-dim)', borderRadius:12, padding:'4px 10px' }}>
+            <span style={{ fontSize:11, color:'var(--gold)' }}>⬡</span>
+            <span style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--gold)' }}>32 DP</span>
+          </div>
+          <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:13, color:'var(--success-green)' }}>1-0</div>
+          <button style={{ background:'transparent', border:'1px solid var(--bg-border)', borderRadius:6, padding:'6px 10px', color:'var(--text-muted)', fontSize:13 }}>☰</button>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+
+        {/* Left: Season map */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', gap:0, overflow:'hidden' }}>
+
+          {/* Season header */}
+          <div style={{ padding:'20px 32px 16px', borderBottom:'1px solid var(--bg-border)', background:'linear-gradient(180deg, rgba(212,34,42,0.04) 0%, transparent 100%)' }}>
+            <div style={{ fontSize:10, color:'var(--text-muted)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:4 }}>SEASON 1 — WEEK 2</div>
+            <div style={{ display:'flex', alignItems:'baseline', gap:12 }}>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:900, fontSize:32, color:'var(--text-primary)' }}>ROAD TO THE CHAMPIONSHIP</div>
+              <div style={{ fontFamily:'var(--font-display)', fontWeight:700, fontSize:14, color:'var(--success-green)' }}>Win all 5 to claim the season</div>
+            </div>
+          </div>
+
+          {/* Map area */}
+          <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'32px', position:'relative' }}>
+            {/* Background field lines */}
+            <div style={{ position:'absolute', inset:0, opacity:0.03, backgroundImage:'repeating-linear-gradient(90deg, white 0, white 1px, transparent 0, transparent 10%)', pointerEvents:'none' }} />
+
+            <SeasonMap nodes={SEASON_NODES} onSelectNode={setSelectedNode} selectedNode={selectedNode} />
+          </div>
+
+          {/* Bottom nav */}
+          <div style={{ padding:'12px 24px', borderTop:'1px solid var(--bg-border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <button style={{ background:'transparent', border:'1px solid var(--bg-border)', color:'var(--text-secondary)', padding:'8px 16px', borderRadius:6, fontFamily:'var(--font-display)', fontWeight:600, fontSize:12, letterSpacing:'0.06em' }}>
+              ← LOCKER ROOM
+            </button>
+            <div style={{ display:'flex', gap:6 }}>
+              {SEASON_NODES.map((n, i) => (
+                <div key={n.id} style={{ width:8, height:8, borderRadius:'50%', background: n.completed ? 'var(--success-green)' : n.current ? 'var(--blitz-red)' : 'var(--bg-border)', transition:'all 200ms' }} />
+              ))}
+            </div>
+            <div style={{ fontSize:11, color:'var(--text-muted)' }}>SEASON 1 · {SEASON_NODES.filter(n=>n.completed).length} / 5 COMPLETE</div>
+          </div>
+        </div>
+
+        {/* Right: Game detail */}
+        <div style={{ width:320, flexShrink:0, borderLeft:'1px solid var(--bg-border)', background:'var(--bg-surface)', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+          <GamePreviewPanel node={selectedNode} onStartGame={() => setShowCoinToss(true)} />
+        </div>
+      </div>
+
+      {/* Coin Toss Overlay */}
+      {showCoinToss && (
+        <CoinTossScreen
+          onChoose={(role) => { setShowCoinToss(false); /* navigate to game */ }}
+          onBack={() => setShowCoinToss(false)}
+        />
+      )}
+
+      {/* Tweaks */}
+      {showTweaks && (
+        <TweaksPanel onClose={() => { setShowTweaks(false); window.parent.postMessage({ type:'__edit_mode_dismissed' }, '*'); }}>
+          <TweakSection title="Season Map">
+            <TweakToggle label="Show Coin Toss" value={showCoinToss} onChange={v => setShowCoinToss(v)} />
+          </TweakSection>
+          <TweakSection title="Simulate State">
+            <TweakButton label="All Games Won" onClick={() => {}} />
+            <TweakButton label="Reset Season" onClick={() => {}} />
+          </TweakSection>
+        </TweaksPanel>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<SeasonScreen />);
+</script>
+</body>
+</html>

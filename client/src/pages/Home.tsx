@@ -154,7 +154,11 @@ function Home(): JSX.Element {
         )}
 
         {isAuthenticated ? (
-          <p className="text-sm">
+          <p className="text-sm" style={{ fontFamily: 'var(--font-serif)' }}>
+            <Link to="/how-to-play" className="underline" style={{ color: 'var(--blue)' }}>
+              How to play
+            </Link>
+            <span style={{ color: 'var(--muted)' }}> · </span>
             <Link to="/profile" className="underline" style={{ color: 'var(--blue)' }}>
               Profile
             </Link>

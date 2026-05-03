@@ -7,6 +7,7 @@ import DeckViewPage from './pages/DeckViewPage';
 import LockerRoomPage from './pages/LockerRoomPage';
 import PlayPage from './pages/PlayPage';
 import Profile from './pages/Profile';
+import HowToPlayPage from './pages/HowToPlayPage';
 import SeasonMapPage from './pages/SeasonMapPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import RequireAdmin from './components/RequireAdmin';
@@ -83,6 +84,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/how-to-play"
+          element={
+            <ProtectedRoute>
+              <HowToPlayPage />
             </ProtectedRoute>
           }
         />
