@@ -56,14 +56,19 @@ function LockerRoomPage(): JSX.Element {
   const [whistleData, setWhistleData] = useState<EndGameResponse | null>(null);
   const [showWhistle, setShowWhistle] = useState(false);
 
+  const hasEndGameState = Boolean(
+    (location.state as { endGame?: EndGameResponse } | null)?.endGame
+  );
+
   useEffect(() => {
-    const eg = (location.state as { endGame?: EndGameResponse } | null)?.endGame;
-    if (eg) {
-      setWhistleData(eg);
-      setShowWhistle(true);
-      navigate(`${location.pathname}${location.search}`, { replace: true, state: {} });
+    if (!hasEndGameState) {
+      return;
     }
-  }, [location.pathname, location.search, location.state, navigate]);
+    const eg = (location.state as { endGame?: EndGameResponse }).endGame!;
+    setWhistleData(eg);
+    setShowWhistle(true);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: {} });
+  }, [hasEndGameState, location.pathname, location.search, location.state, navigate]);
 
   const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ['session', 'detail', sessionId],
@@ -129,11 +134,17 @@ function LockerRoomPage(): JSX.Element {
   const closeMut = useMutation({
     mutationFn: () => sessionsApi.lockerClose(session!._id),
     onSuccess: (s) => {
-      qc.invalidateQueries({ queryKey: ['session', 'detail', sessionId] });
-      qc.invalidateQueries({ queryKey: ['session', 'active'] });
       if (s.status === 'completed') {
+        qc.setQueryData(['session', 'active'], null);
+        if (sessionId) {
+          qc.removeQueries({ queryKey: ['session', 'detail', sessionId] });
+        }
         navigate('/', { replace: true });
       } else {
+        qc.setQueryData(['session', 'active'], s);
+        if (sessionId) {
+          qc.setQueryData(['session', 'detail', sessionId], s);
+        }
         navigate('/play', { replace: true });
       }
     },
