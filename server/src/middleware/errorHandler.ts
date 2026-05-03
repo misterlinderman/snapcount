@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import * as Sentry from '@sentry/node';
+import { logger } from '../logger';
 
 export interface AppError extends Error {
   statusCode?: number;
@@ -28,13 +30,14 @@ export const errorHandler = (
   const statusCode = err.statusCode || 500;
   const status = err.status || 'error';
 
-  // Log error in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error('Error:', {
-      message: err.message,
-      stack: err.stack,
-      statusCode,
-    });
+  if (statusCode >= 500 && process.env.SENTRY_DSN) {
+    Sentry.captureException(err);
+  }
+
+  if (statusCode >= 500) {
+    logger.error({ err, statusCode }, err.message);
+  } else {
+    logger.debug({ statusCode, message: err.message });
   }
 
   // Send response

@@ -158,7 +158,8 @@ Two completely separate pools. The hand always includes one playmaker matching t
 - Ball starts at 50 on kickoff and after scores.
 - Red drives toward 100 (`dir = +1`), Blue toward 0 (`dir = −1`).
 - **First down:** gain ≥ yardsToGo → reset down to 1, yardsToGo to 10.
-- **4th-down failure:** possession flips at the spot, down resets.
+- **4th-down field goal (v0.3):** when the user is on offense and it is 4th down, they may attempt a **field goal** (see v0.3 section) instead of a normal snap.
+- **4th-down failure (snap):** possession flips at the spot, down resets.
 - **Touchdown:** ball ≥ 95 (Red) or ≤ 5 (Blue) → 7 points (6 + auto PAT). Possession flips on the kickoff.
 - **Interception:** possession flips + 15-yard return in the new offense's direction.
 - **Fumble:** possession flips at the spot.
@@ -191,6 +192,8 @@ After every touchdown, three randomly drawn upgrades. Pick one:
 ### Locker Room (between games)
 
 Three spend tracks.
+
+**Deck size (v0.3).** Total card **copies** in the deck (sum of all row `count` on offense and defense) is capped at **20**. Drafting while at the cap requires a **forced cut**: the client sends `cutCardIds` (ordered list of catalog card slugs); each entry removes **one copy** from the deck (first matching row on either side) **before** the new card is added.
 
 **Track A — Draft new cards.** A random pool of 5 cards drawn each session.
 
@@ -236,7 +239,31 @@ Three spend tracks.
 - Offensive playmaker pool cap: 4. Recruiting a 5th forces a drop.
 - Defensive playmaker pool cap: 4.
 - Card upgrades: one per card maximum.
-- Deck size: unbounded in v0.2; 20-card cap target for v0.3.
+- **Deck size (v0.3):** max **20** card copies; at-cap drafting uses **forced cut** (`cutCardIds`) as described under Locker Room.
+- **Acquisition order:** each newly drafted card id is appended to `cardAcquisitionOrder` on the deck document for **rogue death**.
+
+## v0.3 — Redraw, field goal, CPU weights, rogue death
+
+### Redraw
+
+- Costs **1 DP** per redraw.
+- **At most 1 redraw per possession**; the flag resets when possession changes.
+
+### Field goal (user on offense, 4th down only)
+
+- Alternative to a normal snap. **3 points** if good.
+- **Automatic make** if distance to the opponent goal line is **≤ 45 yards** (for Red offense: `100 - ballYard`; for Blue: `ballYard`).
+- **Longer attempts:** success uses a random roll with probability decreasing as distance increases (see engine); a miss is a **turnover at the line of scrimmage** (possession flips, spot unchanged).
+- Advances the **play clock** like any other scrimmage play.
+
+### CPU play calling
+
+- The CPU picks among its dealt cards using **weighted random** weights:  
+  `effective power (with its dealt playmaker) + mean matchup modifier` vs. the **user’s dealt hand** on the relevant side (offense row vs. user defense types when the CPU is on offense; defense column vs. user offense types when the CPU is on defense).
+
+### Rogue death
+
+- When the **player loses** and the opponent’s margin is **≥ 14 points**, remove **up to three** cards by walking **`cardAcquisitionOrder` from the end** (most recent last), deleting one copy per entry until three cards are removed or the log is empty.
 
 ## Season map
 
@@ -295,7 +322,7 @@ Each badge has a class. Don't add new ones without a doc update.
 
 | Phase | Left | Right |
 |-------|------|-------|
-| Select | ↺ Redraw | ⚡ Snap Play (disabled until card + PM picked) |
+| Select | ↺ Redraw (1 DP, 1× / possession) · FG on 4th | ⚡ Snap Play (disabled until card + PM picked) |
 | Resolved | ↺ Redraw (disabled) | ▶ Next Play (pulsing) |
 
 **Resolution panel.** After every snap, both cards (badge + name + effective power), the matchup label, and the play result. Winner highlighted green, loser dimmed. Stays on screen until the player taps Next Play.
@@ -304,16 +331,9 @@ Each badge has a class. Don't add new ones without a doc update.
 
 ## Known issues / flags for the next pass
 
-These are the v0.2 known limitations carried into the MERN port. The build plan addresses them in dedicated phases:
-
-- Deck size cap not enforced.
-- CPU strategy is naive (always picks highest raw power); needs matchup-aware weighting.
-- 4th-down field goal option absent.
-- Penalty system partial (only False Start).
-- Redraw is free; should cost DP or be limited per possession.
-- No rogue-death mechanic (blowout loss costs cards).
-- Quarter clock is play-count based, not time-based.
+- Quarter clock is play-count based, not real time.
+- Penalty system still partial beyond False Start.
 
 ## Versioning
 
-This doc reflects the **v0.2** spec from `gridiron-rogue-v02-build.md` and `gridiron-rogue-v2.html`. As Snapcount adds rules (deck cap, FG, smarter CPU, etc.), update this doc first, then the engine, then the seed and admin layer.
+This doc is updated for **v0.3** (Snapcount MERN). The HTML POC remains the legacy math reference where not superseded above. When adding rules, update this doc first, then the engine (server + client mirror), then routes and UI.

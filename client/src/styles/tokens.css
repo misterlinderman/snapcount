@@ -1,0 +1,115 @@
+/**
+ * Gridiron Rogue / newspaper sports-desk palette.
+ * POC `gridiron-rogue-v2.html` is not in this repo; names and roles match AGENTS.md + .cursorrules.
+ */
+:root {
+  /* Neutrals — masthead, paper, type */
+  --ink: #14120f;
+  --ink2: #252220;
+  --cream: #f2ece3;
+  --white: #fffcf7;
+  --muted: #6e6860;
+  --rule: #c8c2b6;
+
+  /* Team ink (UI accents; Blitz FC / Storm SC) */
+  --red: #8b2332;
+  --red-mid: #a53b4a;
+  --blue: #1a3a5f;
+  --blue-mid: #2d5580;
+
+  /* Field */
+  --green-field: #1a3d2e;
+  --green-turf: #244a38;
+
+  /* Highlights — playmakers, DP, badges */
+  --gold: #b8942f;
+  --gold-mid: #d4b03d;
+
+  /* Type stacks (pair with fonts.css) */
+  --font-playfair-sc: 'Playfair Display SC', 'Times New Roman', serif;
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-serif: 'Source Serif 4', 'Georgia', serif;
+
+  /* Layout — typical single-column POC width */
+  --shell-max-width: 56rem;
+  --shell-pad-x: 1rem;
+  --shell-pad-y: 1.25rem;
+  --masthead-height: 3.25rem;
+  --rogue-bar-height: 3rem;
+
+  /* Card-type badge chips (newspaper ink + tint) */
+  --badge-fg: var(--ink);
+  --badge-run-in-bg: #e8dfd0;
+  --badge-run-out-bg: #e0ddd8;
+  --badge-pass-s-bg: #dbe5ec;
+  --badge-pass-m-bg: #d5dcea;
+  --badge-pass-d-bg: #cfd6e8;
+  --badge-option-bg: #e2deec;
+  --badge-rogue-bg: #f0e6d8;
+  --badge-run-d-bg: #dde6df;
+  --badge-zone-bg: #d8e2e0;
+  --badge-man-bg: #ddd8e4;
+  --badge-blitz-bg: #e8d8dc;
+  --badge-prevent-bg: #e5e2dc;
+}
+
+/* Card family badge — pair with .badge-<type> for background */
+.game-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 2px;
+  border: 1px solid var(--rule);
+  font-family: var(--font-serif);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--badge-fg);
+}
+
+.badge-run-in {
+  background-color: var(--badge-run-in-bg);
+}
+.badge-run-out {
+  background-color: var(--badge-run-out-bg);
+}
+.badge-pass-s {
+  background-color: var(--badge-pass-s-bg);
+}
+.badge-pass-m {
+  background-color: var(--badge-pass-m-bg);
+}
+.badge-pass-d {
+  background-color: var(--badge-pass-d-bg);
+}
+.badge-option {
+  background-color: var(--badge-option-bg);
+}
+.badge-rogue {
+  background-color: var(--badge-rogue-bg);
+  border-color: var(--gold-mid);
+}
+.badge-run-d {
+  background-color: var(--badge-run-d-bg);
+}
+.badge-zone {
+  background-color: var(--badge-zone-bg);
+}
+.badge-man {
+  background-color: var(--badge-man-bg);
+}
+.badge-blitz {
+  background-color: var(--badge-blitz-bg);
+}
+.badge-prevent {
+  background-color: var(--badge-prevent-bg);
+}
+
+.badge-unknown {
+  background-color: var(--cream);
+  color: var(--muted);
+}

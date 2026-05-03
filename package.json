@@ -13,8 +13,14 @@
     "start": "cd server && npm start",
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "lint": "cd client && npm run lint && cd ../server && npm run lint",
+    "typecheck": "npm run typecheck:client && npm run typecheck:server",
+    "typecheck:client": "cd client && npx tsc -b",
+    "typecheck:server": "cd server && npx tsc --noEmit",
+    "test": "npm run test --prefix server",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "clean": "rm -rf client/dist server/dist client/node_modules server/node_modules node_modules"
+    "clean": "rm -rf client/dist server/dist client/node_modules server/node_modules node_modules",
+    "seed": "npm run seed --prefix server",
+    "seed:reset": "npm run seed:reset --prefix server"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

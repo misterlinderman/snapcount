@@ -66,7 +66,7 @@ Body: `{ displayName?: string }`. Returns updated user.
 Lists the current user's decks.
 
 ### `GET /api/decks/:id`
-Returns a single deck. 404 if not found or not owned by user.
+Returns a single deck. 404 if not found or not owned by user. **v0.3:** includes `cardAcquisitionOrder` (string ids, most recent draft last) used for blowout roster trimming after a game.
 
 ### `GET /api/decks/default`
 Returns the user's default deck.
@@ -99,7 +99,7 @@ Starts a new season. Body: `{ deckId: string }`. Returns the new session with th
 Returns the user's active session, or 204 No Content.
 
 ### `GET /api/sessions/:id`
-Returns a session by id. Must belong to the user.
+Returns a session by id. Must belong to the user. The embedded `game` object includes engine state; **v0.3** adds `redrawUsedThisPossession` (boolean) for the paid redraw limit.
 
 ### `POST /api/sessions/:id/coin-toss`
 Body: `{ side: 'offense' | 'defense' }`. Locks the user's role for the opening drive and deals the first hand. Returns updated session.
@@ -127,7 +127,18 @@ The server:
 If the same `playId` arrives twice, returns the cached `{ state, events }` without re-resolving.
 
 ### `POST /api/sessions/:id/redraw`
-Discards the user's hand and deals a new one. May cost DP per the rules. Returns updated session.
+Empty body. Discards the user's hand and deals a new one. **v0.3:** costs **1 DP**, and at most **one redraw per possession** (the flag resets when possession changes after a snap). Requires no pending resolution. Returns the updated session document (same shape as `GET /api/sessions/:id`).
+
+### `POST /api/sessions/:id/field-goal`
+**v0.3.** Field goal attempt on **4th down** when **the user's team has the ball**. No card selection. Body:
+
+```json
+{
+  "playId": "uuid-v4-from-client"
+}
+```
+
+RNG is seeded from `sessionId` + `playId` (same pattern as `/snap`). Returns `{ state, events }` — the same envelope as `/snap`, with `pendingAdvance` describing the FG result (`playKind: 'field_goal'`, etc.).
 
 ### `POST /api/sessions/:id/next-play`
 Advances from the resolution screen to the next snap. Server applies any deferred state transitions (touchdown overlay → kickoff, turnover, quarter rollover) and deals the next hand. Returns updated session.
@@ -136,10 +147,19 @@ Advances from the resolution screen to the next snap. Server applies any deferre
 Body: `{ rewardId: 'hail-mary' | 'power-boost' | 'star-playmaker' | 'draft-point' }`. Applies the picked reward and continues the game.
 
 ### `POST /api/sessions/:id/end`
-Ends the current game (after Q4) and returns `{ winner, dpEarned, totals }`. Triggers the Locker Room phase.
+Ends the current game after the final whistle (`gameWinner` is set) and returns `{ winner, dpEarned, totals }`. Triggers the Locker Room phase. Session `game.dp` (banked during the match) plus **+3 DP on a win** is applied to the deck document. **v0.3 blowout:** on a **loss** with **opponent margin ≥ 14**, the server removes up to **three** cards from the deck by walking **`cardAcquisitionOrder`** from the most recent draft (see `docs/game/GAME_DESIGN.md`).
 
 ### `POST /api/sessions/:id/locker/draft`
-Body: `{ cardId: string }`. Spends DP and adds the card to the deck.
+Body:
+
+```json
+{
+  "cardId": "slug-or-objectid",
+  "cutCardIds": ["card-to-drop", "another-copy"]
+}
+```
+
+`cutCardIds` is optional (default `[]`). Each entry removes **one copy** of that card from the deck, in order, before the new card is added. **v0.3:** the deck may hold at most **20** card copies total; if drafting would exceed the cap, the client must supply enough valid cuts that the post-cut roster plus one new card stays ≤ 20. Spends the card's **draftCost** (default 1) in DP from the deck and appends the new card id to **`cardAcquisitionOrder`**.
 
 ### `POST /api/sessions/:id/locker/upgrade`
 Body: `{ cardId: string, upgradeId: string }`.

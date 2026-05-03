@@ -163,7 +163,15 @@ Auth0 SPA SDK in the client; `express-jwt` in the server validates against Auth0
 - **DB**: MongoDB Atlas, M10 minimum for production indexes and backups.
 - **Auth0**: tenant per environment (dev, prod). Production tenant has stricter callback URL allowlists.
 
-Logging via Pino (server) → stdout → host log drain. No PII in logs beyond Auth0 sub.
+### Production API hardening
+
+- **Helmet** (`contentSecurityPolicy: false` for a JSON-only API; other defaults on).
+- **CORS**: In `NODE_ENV=production`, only origins listed in `CLIENT_ORIGIN` (comma-separated) or the legacy single `CLIENT_URL` are allowed. Development keeps localhost Vite ports.
+- **Rate limit**: `POST /api/sessions/:id/snap` is limited to **30 requests per minute** per Auth0 `sub` (falls back to client IP), via `express-rate-limit`. `trust proxy` is enabled in production so the limiter sees the real client behind Render/Vercel-style proxies.
+- **Logging**: **Pino** + **pino-http** — JSON to stdout in production (host log drain), pretty stream in local dev; health checks are not auto-logged. **Authorization** and **Cookie** headers are redacted.
+- **Errors / observability**: **Sentry** on client (`@sentry/react`) and server (`@sentry/node`) when DSN env vars are set. `sendDefaultPii` is off; browser user is set to `{ id: sub }` only. Server reports **5xx** from the Express error handler to Sentry.
+
+No PII in structured logs beyond Auth0 `sub` where explicitly attached for debugging (avoid logging emails or names).
 
 ## What's deliberately not in scope for v1.0
 

@@ -1,30 +1,27 @@
 import { useEffect } from 'react';
 import { useAuth0 } from '@auth0/auth0-react';
-import api, { setAuthToken } from '../services/api';
+import api, { registerApiTokenGetter } from '../services/api';
 
 /**
- * Hook to automatically add Auth0 token to API requests
- * Call this once in a high-level component to set up token handling
+ * Registers Auth0 silent token acquisition for the shared axios instance.
+ * Tokens stay in memory via the Auth0 SDK — not localStorage.
  */
-export function useApiAuth() {
+export function useApiAuth(): typeof api {
   const { isAuthenticated, getAccessTokenSilently } = useAuth0();
 
   useEffect(() => {
-    const setupToken = async () => {
-      if (isAuthenticated) {
-        try {
-          const token = await getAccessTokenSilently();
-          setAuthToken(token);
-        } catch (error) {
-          console.error('Error getting access token:', error);
-          setAuthToken(null);
-        }
-      } else {
-        setAuthToken(null);
-      }
-    };
-
-    setupToken();
+    registerApiTokenGetter(
+      isAuthenticated
+        ? async () => {
+            try {
+              return await getAccessTokenSilently();
+            } catch {
+              return null;
+            }
+          }
+        : null
+    );
+    return () => registerApiTokenGetter(null);
   }, [isAuthenticated, getAccessTokenSilently]);
 
   return api;

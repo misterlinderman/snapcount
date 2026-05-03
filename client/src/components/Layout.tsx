@@ -1,4 +1,7 @@
 import { ReactNode } from 'react';
+import Masthead from './game/Masthead';
+import RogueBar from './game/RogueBar';
+import PageShell from './game/PageShell';
 import Navbar from './Navbar';
 
 interface LayoutProps {
@@ -7,15 +10,29 @@ interface LayoutProps {
 
 function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div
+      className="flex min-h-screen flex-col"
+      style={{ backgroundColor: 'var(--cream)', color: 'var(--ink)' }}
+    >
+      <Masthead />
+      <RogueBar />
       <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
-        {children}
+      <main className="flex-1">
+        <PageShell>{children}</PageShell>
       </main>
-      <footer className="bg-white border-t border-gray-200 py-6">
-        <div className="container mx-auto px-4 text-center text-gray-600 text-sm">
-          <p>&copy; {new Date().getFullYear()} MERN Starter. Built with React, Express, MongoDB & Auth0.</p>
-        </div>
+      <footer
+        className="border-t py-6"
+        style={{
+          backgroundColor: 'var(--white)',
+          borderColor: 'var(--rule)',
+          color: 'var(--muted)',
+        }}
+      >
+        <PageShell>
+          <p className="text-center text-sm" style={{ fontFamily: 'var(--font-serif)' }}>
+            &copy; {new Date().getFullYear()} Gridiron Rogue
+          </p>
+        </PageShell>
       </footer>
     </div>
   );

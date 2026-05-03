@@ -9,38 +9,37 @@ const api = axios.create({
   },
 });
 
-// Token storage key
-const TOKEN_KEY = 'auth0_token';
+export type ApiTokenGetter = () => Promise<string | null>;
 
-// Set the auth token for API requests
-export const setAuthToken = (token: string | null) => {
-  if (token) {
-    localStorage.setItem(TOKEN_KEY, token);
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    localStorage.removeItem(TOKEN_KEY);
-    delete api.defaults.headers.common['Authorization'];
-  }
-};
+let tokenGetter: ApiTokenGetter | null = null;
 
-// Initialize token from storage on load
-const storedToken = localStorage.getItem(TOKEN_KEY);
-if (storedToken) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+/** Register Auth0 (or other) access-token provider. Avoid persisting JWTs in localStorage. */
+export function registerApiTokenGetter(getter: ApiTokenGetter | null): void {
+  tokenGetter = getter;
 }
 
-// Response interceptor for error handling
+api.interceptors.request.use(
+  async (config) => {
+    if (tokenGetter) {
+      try {
+        const token = await tokenGetter();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        } else {
+          delete config.headers.Authorization;
+        }
+      } catch {
+        delete config.headers.Authorization;
+      }
+    }
+    return config;
+  },
+  (err) => Promise.reject(err)
+);
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid, clear it
-      setAuthToken(null);
-      // Optionally redirect to login
-      // window.location.href = '/';
-    }
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default api;
