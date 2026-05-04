@@ -12,7 +12,7 @@ function Layout({ children }: LayoutProps) {
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ backgroundColor: 'var(--cream)', color: 'var(--ink)' }}
+      style={{ backgroundColor: 'var(--bg-deep)', color: 'var(--text-primary)' }}
     >
       <Masthead />
       <RogueBar />
@@ -23,13 +23,13 @@ function Layout({ children }: LayoutProps) {
       <footer
         className="border-t py-6"
         style={{
-          backgroundColor: 'var(--white)',
-          borderColor: 'var(--rule)',
-          color: 'var(--muted)',
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--bg-border)',
+          color: 'var(--text-muted)',
         }}
       >
         <PageShell>
-          <p className="text-center text-sm" style={{ fontFamily: 'var(--font-serif)' }}>
+          <p className="text-center text-sm" style={{ fontFamily: 'var(--font-body)' }}>
             &copy; {new Date().getFullYear()} Gridiron Rogue
           </p>
         </PageShell>

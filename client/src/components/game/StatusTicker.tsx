@@ -11,7 +11,7 @@ function StatusTicker({ liveLine, lastLine, className = '' }: StatusTickerProps)
   return (
     <div
       className={`border-b ${className}`}
-      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
       role="status"
       aria-live="polite"
     >

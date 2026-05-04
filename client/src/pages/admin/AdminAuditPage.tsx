@@ -40,7 +40,7 @@ function AuditDetailModal({ entry, onClose }: AuditDetailModalProps): JSX.Elemen
     >
       <div
         className="max-h-[92vh] w-full max-w-4xl overflow-hidden rounded border shadow-lg"
-        style={{ backgroundColor: 'var(--white)', borderColor: 'var(--rule)' }}
+        style={{ backgroundColor: 'var(--surface-panel)', borderColor: 'var(--rule)' }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="audit-detail-title"
@@ -186,7 +186,7 @@ function AdminAuditPage(): JSX.Element {
         className="shrink-0 lg:sticky lg:top-20 lg:w-64"
         aria-label="Audit filters"
       >
-        <div className="rounded border p-4" style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}>
+        <div className="rounded border p-4" style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}>
           <h2 className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--muted)' }}>
             Filters
           </h2>

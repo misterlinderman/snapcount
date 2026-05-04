@@ -1,7 +1,13 @@
+import type { Side } from '@/game/types';
 import type { PlaymakerVisualVariant } from './gameUi.types';
+import PlaymakerSilhouette from './PlaymakerSilhouette';
 
 export interface PlaymakerCardProps {
   name: string;
+  position: string;
+  side: Side;
+  /** e.g. 1.5 → shown as ×1.5 */
+  multiplier: number;
   /** Short affinity line, e.g. "Pass S · Run In" */
   affinityLabel: string;
   variant: PlaymakerVisualVariant;
@@ -9,9 +15,24 @@ export interface PlaymakerCardProps {
   className?: string;
 }
 
-function PlaymakerCard({ name, affinityLabel, variant, onClick, className = '' }: PlaymakerCardProps) {
+function formatMult(m: number): string {
+  const s = Number.isInteger(m) ? String(m) : String(m);
+  return `${s}×`;
+}
+
+function PlaymakerCard({
+  name,
+  position,
+  side,
+  multiplier,
+  affinityLabel,
+  variant,
+  onClick,
+  className = '',
+}: PlaymakerCardProps): JSX.Element {
   const isSelected = variant === 'selected';
   const interactive = Boolean(onClick);
+  const color = side === 'offense' ? 'var(--blitz-red)' : 'var(--storm-blue)';
 
   return (
     <div
@@ -30,31 +51,40 @@ function PlaymakerCard({ name, affinityLabel, variant, onClick, className = '' }
             }
           : undefined
       }
-      className={`flex min-h-[5.5rem] min-w-[5.5rem] max-w-[7rem] flex-col rounded border-2 p-2 shadow-sm sm:min-h-[6.25rem] sm:min-w-[6.5rem] sm:max-w-[8rem] sm:p-2.5 ${interactive ? 'cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--cream)]' : ''} ${className}`}
+      className={`flex w-[5.75rem] shrink-0 flex-col rounded-[var(--radius-md)] border-2 p-2 sm:w-[5.625rem] sm:p-2 ${interactive ? 'cursor-pointer transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--bg-deep)]' : ''} ${className}`}
       style={{
-        borderColor: isSelected ? 'var(--gold)' : 'var(--gold-mid)',
-        backgroundColor: 'var(--white)',
-        backgroundImage: isSelected
-          ? 'linear-gradient(180deg, var(--white) 0%, rgba(184,148,47,0.12) 100%)'
-          : 'linear-gradient(180deg, var(--white) 0%, rgba(184,148,47,0.06) 100%)',
-        boxShadow: isSelected ? '0 0 0 1px var(--gold)' : undefined,
+        borderColor: isSelected ? 'var(--gold)' : color,
+        backgroundColor: 'var(--surface-panel)',
+        boxShadow: isSelected ? 'var(--glow-gold)' : undefined,
       }}
     >
-      <span
-        className="mb-1 text-[9px] font-bold uppercase tracking-widest"
-        style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--gold)' }}
+      <div
+        className="mb-1.5 flex aspect-square w-full items-center justify-center rounded-[var(--radius-sm)]"
+        style={{ background: 'var(--bg-raised)' }}
       >
-        PM
-      </span>
-      <p
-        className="mb-1 line-clamp-2 text-sm font-medium leading-tight sm:text-base"
-        style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--ink)' }}
+        <PlaymakerSilhouette position={position} side={side} color={color} />
+      </div>
+      <div
+        className="text-center text-[10px] font-bold tracking-wide"
+        style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+      >
+        {position}
+      </div>
+      <div
+        className="line-clamp-2 text-center text-[9px] leading-tight sm:text-[10px]"
+        style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}
       >
         {name}
-      </p>
+      </div>
+      <div
+        className="mt-1 text-center text-xs font-bold sm:text-sm"
+        style={{ fontFamily: 'var(--font-display)', color: 'var(--gold)' }}
+      >
+        {formatMult(multiplier)}
+      </div>
       <p
-        className="mt-auto line-clamp-2 text-[10px] leading-snug sm:text-xs"
-        style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', color: 'var(--muted)' }}
+        className="mt-1 line-clamp-2 text-[8px] leading-snug sm:text-[9px]"
+        style={{ fontFamily: 'var(--font-body)', fontStyle: 'italic', color: 'var(--text-muted)' }}
       >
         {affinityLabel}
       </p>

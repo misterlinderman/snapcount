@@ -71,7 +71,7 @@ function SeasonMapPage(): JSX.Element {
               style={{
                 fontFamily: 'var(--font-playfair-sc)',
                 borderColor: active ? 'var(--gold)' : 'var(--rule)',
-                backgroundColor: done ? 'var(--green-field)' : active ? 'var(--white)' : 'var(--cream)',
+                backgroundColor: done ? 'var(--green-field)' : active ? 'var(--surface-panel)' : 'var(--cream)',
                 color: active ? 'var(--ink)' : 'var(--ink)',
                 boxShadow: active ? '0 0 0 2px var(--gold-mid)' : undefined,
                 opacity: done ? 0.92 : 1,
@@ -118,7 +118,7 @@ function SeasonMapPage(): JSX.Element {
           style={{
             fontFamily: 'var(--font-serif)',
             borderColor: 'var(--rule)',
-            backgroundColor: 'var(--white)',
+            backgroundColor: 'var(--surface-panel)',
             color: 'var(--ink)',
           }}
         >

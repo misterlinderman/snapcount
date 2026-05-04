@@ -21,7 +21,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Barlow', 'DM Sans', 'system-ui', 'sans-serif'],
+        display: ['Barlow Condensed', 'Oswald', 'system-ui', 'sans-serif'],
       },
     },
   },

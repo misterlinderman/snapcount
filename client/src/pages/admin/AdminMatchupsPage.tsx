@@ -173,7 +173,7 @@ function AdminMatchupsPage(): JSX.Element {
               style={{
                 borderColor: 'var(--blue)',
                 color: 'var(--blue)',
-                backgroundColor: 'var(--white)',
+                backgroundColor: 'var(--surface-panel)',
               }}
               onClick={enterEdit}
             >
@@ -263,7 +263,7 @@ function AdminMatchupsPage(): JSX.Element {
                     <td
                       key={col}
                       className="border p-1 align-top"
-                      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+                      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
                     >
                       {editMode ? (
                         <input

@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { isAxiosError } from 'axios';
 import FinalWhistleModal from '@/components/game/overlays/FinalWhistleModal';
+import DPBadge from '@/components/game/DPBadge';
+import LockerNavItem from '@/components/game/LockerNavItem';
 import { badgeClassForCardType, shortTypeLabel } from '@/components/game/gameUi.types';
 import type { Card, Playmaker, Upgrade } from '@/game/types';
 import { decksApi } from '@/services/decksApi';
@@ -39,9 +41,6 @@ function cutsAllowDraft(
 }
 
 type TabId = 'draft' | 'upgrade' | 'recruit';
-
-const tabBtn =
-  'min-h-11 flex-1 rounded border px-2 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--gold)] sm:text-base';
 
 function LockerRoomPage(): JSX.Element {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -228,18 +227,18 @@ function LockerRoomPage(): JSX.Element {
             Game {session.season.node} · W{session.season.wins} L{session.season.losses}
           </p>
         </div>
-        <div
-          className="rounded border px-4 py-2 tabular-nums"
-          style={{ borderColor: 'var(--gold-mid)', backgroundColor: 'var(--cream)' }}
-        >
-          <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--muted)' }}>
-            DP
-          </span>{' '}
-          <span className="text-2xl" style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--gold)' }}>
-            {deck.dp ?? 0}
-          </span>
-          <div className="mt-1 text-xs" style={{ color: 'var(--ink2)' }}>
-            Cards {deckTotal}/{DECK_CARD_CAP}
+        <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <DPBadge value={deck.dp ?? 0} size="md" />
+          <div
+            className="rounded border px-3 py-2 text-right text-xs tabular-nums"
+            style={{ borderColor: 'var(--gold-dim)', backgroundColor: 'var(--bg-raised)' }}
+          >
+            <span className="uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Cards
+            </span>{' '}
+            <span style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+              {deckTotal}/{DECK_CARD_CAP}
+            </span>
           </div>
         </div>
       </header>
@@ -254,35 +253,50 @@ function LockerRoomPage(): JSX.Element {
         </p>
       ) : null}
 
-      <div className="flex gap-2 border-b pb-1" style={{ borderColor: 'var(--rule)' }}>
-            {(
-              [
-                ['draft', 'Draft'],
-                ['upgrade', 'Upgrade'],
-                ['recruit', 'Recruit'],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={tabBtn}
-                style={{
-                  fontFamily: 'var(--font-playfair-sc)',
-                  borderColor: tab === id ? 'var(--gold)' : 'var(--rule)',
-                  backgroundColor: tab === id ? 'var(--white)' : 'var(--cream)',
-                  color: 'var(--ink)',
-                }}
-                onClick={() => {
-                  setTab(id);
-                  setErr(null);
-                  setPendingDraft(null);
-                  setCutCardIds([]);
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      <nav
+        className="rounded-[var(--radius-md)] border"
+        style={{ borderColor: 'var(--bg-border)', backgroundColor: 'var(--surface-panel)' }}
+        aria-label="Locker sections"
+      >
+        <div className="flex flex-col sm:flex-row sm:divide-x sm:divide-[var(--bg-border)]">
+          <LockerNavItem
+            icon="📋"
+            label="Draft"
+            description="Spend DP on a new card"
+            active={tab === 'draft'}
+            onClick={() => {
+              setTab('draft');
+              setErr(null);
+              setPendingDraft(null);
+              setCutCardIds([]);
+            }}
+          />
+          <LockerNavItem
+            icon="⬆️"
+            label="Upgrade"
+            description="Power up a roster card"
+            active={tab === 'upgrade'}
+            onClick={() => {
+              setTab('upgrade');
+              setErr(null);
+              setPendingDraft(null);
+              setCutCardIds([]);
+            }}
+          />
+          <LockerNavItem
+            icon="🏈"
+            label="Recruit"
+            description="Add a playmaker"
+            active={tab === 'recruit'}
+            onClick={() => {
+              setTab('recruit');
+              setErr(null);
+              setPendingDraft(null);
+              setCutCardIds([]);
+            }}
+          />
+        </div>
+      </nav>
 
           {tab === 'draft' ? (
             <ul className="space-y-2">
@@ -305,7 +319,7 @@ function LockerRoomPage(): JSX.Element {
                           <button
                             type="button"
                             className="min-h-11 w-full rounded border px-2 py-2 text-left text-xs"
-                            style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)', color: 'var(--ink)' }}
+                            style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)', color: 'var(--ink)' }}
                             disabled={draftMut.isPending}
                             onClick={() => setCutCardIds((prev) => [...prev, row.cardId])}
                           >
@@ -367,7 +381,7 @@ function LockerRoomPage(): JSX.Element {
                     <button
                       type="button"
                       className="flex w-full min-h-12 items-center justify-between gap-3 rounded border px-3 py-2 text-left text-sm disabled:opacity-40"
-                      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)', color: 'var(--ink)' }}
+                      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)', color: 'var(--ink)' }}
                       disabled={!can || draftMut.isPending || Boolean(pendingDraft)}
                       onClick={() => {
                         if (cutsNeeded > 0) {
@@ -409,7 +423,7 @@ function LockerRoomPage(): JSX.Element {
                       <button
                         type="button"
                         className="flex w-full min-h-12 flex-col items-stretch gap-1 rounded border px-3 py-2 text-left text-sm disabled:opacity-40 sm:flex-row sm:items-center sm:justify-between"
-                        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)', color: 'var(--ink)' }}
+                        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)', color: 'var(--ink)' }}
                         disabled={!can || upgradeMut.isPending}
                         onClick={() => upgradeMut.mutate({ cardId: o.cardId, upgradeId: o.upgrade._id })}
                       >
@@ -438,7 +452,7 @@ function LockerRoomPage(): JSX.Element {
                     <button
                       type="button"
                       className="flex w-full min-h-12 items-center justify-between gap-3 rounded border px-3 py-2 text-left text-sm disabled:opacity-40"
-                      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)', color: 'var(--ink)' }}
+                      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)', color: 'var(--ink)' }}
                       disabled={!can || full || recruitMut.isPending}
                       onClick={() => recruitMut.mutate(p._id)}
                     >

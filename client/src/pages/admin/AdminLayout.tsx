@@ -17,7 +17,7 @@ function AdminLayout(): JSX.Element {
       <aside className="shrink-0 md:w-56">
         <nav
           className="flex flex-col gap-0.5 rounded border p-3 md:sticky md:top-20"
-          style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+          style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
           aria-label="Admin navigation"
         >
           <p

@@ -1,3 +1,6 @@
+import StatBadge from './StatBadge';
+import TeamBadge from './TeamBadge';
+
 export interface ScoreboardProps {
   homeLabel: string;
   awayLabel: string;
@@ -18,7 +21,7 @@ const ordinal = (d: number): string => {
 };
 
 /**
- * Three-column scoreboard: home | game state | away.
+ * Scoreboard: TeamBadge columns + quarter / down (alpha design system).
  */
 function Scoreboard({
   homeLabel,
@@ -30,91 +33,87 @@ function Scoreboard({
   down,
   yardsToGo,
   homeIsRed = true,
-}: ScoreboardProps) {
+}: ScoreboardProps): JSX.Element {
   const homeIsPossession =
     (homeIsRed && possession === 'red') || (!homeIsRed && possession === 'blue');
 
   const quarters: Array<1 | 2 | 3 | 4> = [1, 2, 3, 4];
 
+  const homeTeamColor = homeIsRed ? 'var(--blitz-red)' : 'var(--storm-blue)';
+  const awayTeamColor = homeIsRed ? 'var(--storm-blue)' : 'var(--blitz-red)';
+  const homeLogo = homeIsRed ? 'B' : '⚡';
+  const awayLogo = homeIsRed ? '⚡' : 'B';
+
   return (
     <div
-      className="grid w-full grid-cols-[1fr_auto_1fr] gap-2 border-b py-3 sm:gap-3 sm:py-4"
-      style={{ borderColor: 'var(--rule)', color: 'var(--ink)' }}
+      className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-2 border-b py-2 sm:gap-3 sm:py-3"
+      style={{
+        borderColor: 'var(--bg-border)',
+        background: 'var(--bg-deep)',
+        color: 'var(--text-primary)',
+      }}
     >
-      {/* Home */}
-      <div className="flex min-w-0 flex-col items-center text-center sm:items-start sm:text-left">
-        <span
-          className="max-w-full truncate text-[10px] font-semibold uppercase tracking-widest sm:text-xs"
-          style={{
-            fontFamily: 'var(--font-playfair-sc)',
-            color: homeIsRed ? 'var(--red)' : 'var(--blue)',
-          }}
+      <div className="min-w-0 justify-self-start">
+        <TeamBadge
+          name={homeLabel}
+          score={homeScore}
+          color={homeTeamColor}
+          logo={homeLogo}
+          align="left"
+        />
+        <div
+          className="mt-1 hidden text-center text-lg sm:block sm:text-left"
+          aria-hidden={!homeIsPossession}
         >
-          {homeLabel}
-        </span>
-        <span
-          className="text-3xl tabular-nums sm:text-4xl"
-          style={{ fontFamily: 'var(--font-playfair-sc)' }}
-        >
-          {homeScore}
-        </span>
-        <span className="mt-0.5 text-lg sm:text-xl" aria-hidden={!homeIsPossession}>
           {homeIsPossession ? '◀' : '\u00a0'}
-        </span>
+        </div>
       </div>
 
-      {/* Center — quarter + down */}
-      <div
-        className="flex min-w-[8.5rem] flex-col items-center justify-center gap-2 px-1 sm:min-w-[10rem]"
-        style={{ fontFamily: 'var(--font-serif)' }}
-      >
+      <div className="flex min-w-[9rem] flex-col items-center justify-center gap-2 px-1 sm:min-w-[10.5rem]">
+        <div className="flex items-center gap-3">
+          <StatBadge label="Qtr" value={`Q${quarter}`} size="sm" color="var(--gold-bright)" />
+        </div>
         <div className="flex items-center gap-1" aria-label={`Quarter ${quarter}`}>
           {quarters.map((q) => (
             <span
               key={q}
               className="h-2 w-2 rounded-full sm:h-2.5 sm:w-2.5"
               style={{
-                backgroundColor: q === quarter ? 'var(--ink)' : 'var(--rule)',
+                backgroundColor: q === quarter ? 'var(--gold)' : 'var(--bg-border)',
                 opacity: q <= quarter ? 1 : 0.45,
               }}
             />
           ))}
         </div>
         <div
-          className="rounded border px-2 py-1.5 text-center text-xs sm:text-sm"
+          className="w-full rounded border px-2 py-1.5 text-center text-xs sm:text-sm"
           style={{
-            borderColor: 'var(--rule)',
-            backgroundColor: 'var(--white)',
-            color: 'var(--ink2)',
+            borderColor: 'var(--bg-border)',
+            backgroundColor: 'var(--surface-panel)',
+            color: 'var(--text-primary)',
           }}
         >
-          <span className="block text-[10px] uppercase tracking-wider opacity-70">Down</span>
-          <span className="font-semibold tabular-nums">
+          <span className="block text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Down</span>
+          <span className="font-bold tabular-nums" style={{ fontFamily: 'var(--font-display)' }}>
             {ordinal(down)} & {yardsToGo}
           </span>
         </div>
       </div>
 
-      {/* Away */}
-      <div className="flex min-w-0 flex-col items-center text-center sm:items-end sm:text-right">
-        <span
-          className="max-w-full truncate text-[10px] font-semibold uppercase tracking-widest sm:text-xs"
-          style={{
-            fontFamily: 'var(--font-playfair-sc)',
-            color: homeIsRed ? 'var(--blue)' : 'var(--red)',
-          }}
+      <div className="min-w-0 justify-self-end">
+        <TeamBadge
+          name={awayLabel}
+          score={awayScore}
+          color={awayTeamColor}
+          logo={awayLogo}
+          align="right"
+        />
+        <div
+          className="mt-1 hidden text-center text-lg sm:block sm:text-right"
+          aria-hidden={homeIsPossession}
         >
-          {awayLabel}
-        </span>
-        <span
-          className="text-3xl tabular-nums sm:text-4xl"
-          style={{ fontFamily: 'var(--font-playfair-sc)' }}
-        >
-          {awayScore}
-        </span>
-        <span className="mt-0.5 text-lg sm:text-xl" aria-hidden={homeIsPossession}>
           {!homeIsPossession ? '▶' : '\u00a0'}
-        </span>
+        </div>
       </div>
     </div>
   );

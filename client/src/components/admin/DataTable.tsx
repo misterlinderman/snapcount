@@ -116,7 +116,7 @@ function DataTable<T>({
             className="mt-1 min-h-10 rounded border px-2 text-sm"
             style={{
               borderColor: 'var(--rule)',
-              backgroundColor: 'var(--white)',
+              backgroundColor: 'var(--surface-panel)',
               color: 'var(--ink)',
               fontFamily: 'var(--font-serif)',
             }}
@@ -132,7 +132,7 @@ function DataTable<T>({
               className="mt-1 min-h-10 rounded border px-2 text-sm"
               style={{
                 borderColor: 'var(--rule)',
-                backgroundColor: 'var(--white)',
+                backgroundColor: 'var(--surface-panel)',
                 color: 'var(--ink)',
                 fontFamily: 'var(--font-serif)',
               }}
@@ -152,7 +152,7 @@ function DataTable<T>({
       <div className="overflow-x-auto rounded border" style={{ borderColor: 'var(--rule)' }}>
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr style={{ backgroundColor: 'var(--white)', borderBottom: '1px solid var(--rule)' }}>
+            <tr style={{ backgroundColor: 'var(--surface-panel)', borderBottom: '1px solid var(--rule)' }}>
               {columns.map((col) => (
                 <th
                   key={col.id}

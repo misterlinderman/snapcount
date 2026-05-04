@@ -1,5 +1,6 @@
 import type { GameCardTypeSlug } from './gameUi.types';
-import { badgeClassForCardType, shortTypeLabel } from './gameUi.types';
+import { badgeClassForCardType, playCardSubtypeLabel, shortTypeLabel } from './gameUi.types';
+import { RouteDiagramDefense, RouteDiagramOffense, RouteDiagramRogue } from './RouteDiagrams';
 
 export type CardVariant = 'selectable' | 'selected' | 'cpu-hidden' | 'cpu-revealed';
 
@@ -9,24 +10,50 @@ export interface CardProps {
   /** Effective or base power; use string for "?" when hidden. */
   power: number | string;
   variant: CardVariant;
+  /** User's current hand side — sets border + diagram family. */
+  role: 'offense' | 'defense';
+  basePower?: number;
+  /** Catalog rarity for top accent bar. */
+  rarity?: string;
   onClick?: () => void;
   className?: string;
 }
 
-function Card({ cardType, name, power, variant, onClick, className = '' }: CardProps) {
+function rarityAccentColor(cardType: string, rarity?: string): string {
+  if (cardType === 'rogue') return 'var(--rarity-rogue)';
+  if (rarity === 'rare' || rarity === 'legendary') return 'var(--rarity-rare)';
+  if (rarity === 'uncommon') return 'var(--rarity-uncommon)';
+  return 'var(--rarity-common)';
+}
+
+function Card({
+  cardType,
+  name,
+  power,
+  variant,
+  role,
+  basePower,
+  rarity,
+  onClick,
+  className = '',
+}: CardProps): JSX.Element {
   const badgeClass = badgeClassForCardType(cardType);
   const hidden = variant === 'cpu-hidden';
   const isSelected = variant === 'selected';
-  const lightFace = variant === 'selectable' || isSelected || variant === 'cpu-revealed';
+  const isRogue = cardType === 'rogue';
 
-  const borderColor =
-    isSelected ? 'var(--gold)' : hidden ? 'var(--muted)' : 'var(--rule)';
-  const bg = hidden ? 'var(--ink2)' : 'var(--white)';
+  const teamBorder = isRogue ? 'var(--rogue-purple)' : role === 'offense' ? 'var(--blitz-red)' : 'var(--storm-blue)';
+  const borderColor = isSelected ? 'var(--gold)' : teamBorder;
+  const bg = hidden ? 'var(--bg-raised)' : 'var(--surface-panel)';
   const opacity = hidden ? 0.92 : 1;
 
   const interactive = Boolean(onClick) && (variant === 'selectable' || isSelected || variant === 'cpu-revealed');
 
   const powerDisplay = hidden ? '?' : power;
+  const baseDisplay = hidden ? '—' : basePower ?? (typeof power === 'number' ? power : power);
+  const accent = rarityAccentColor(cardType, rarity);
+  const showRareChip = (rarity === 'rare' || rarity === 'legendary') && !hidden;
+  const subtype = playCardSubtypeLabel(cardType);
 
   return (
     <div
@@ -45,47 +72,87 @@ function Card({ cardType, name, power, variant, onClick, className = '' }: CardP
             }
           : undefined
       }
-      className={`flex min-h-[5.5rem] min-w-[4.5rem] flex-1 flex-col rounded border p-2 shadow-sm sm:min-h-[6.25rem] sm:min-w-[5.25rem] sm:p-2.5 ${interactive ? 'cursor-pointer transition-shadow hover:brightness-[0.98] focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--cream)]' : ''} ${className}`}
+      className={`relative flex min-h-[7.5rem] min-w-[4.75rem] flex-1 flex-col gap-1 rounded-[var(--radius-lg)] border-2 p-2 sm:min-h-[8.25rem] sm:min-w-[5.5rem] sm:gap-1.5 sm:p-2.5 ${interactive ? 'cursor-pointer transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:scale-[1.02] hover:shadow-[var(--glow-gold)] focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--bg-deep)]' : ''} ${className}`}
       style={{
         borderColor,
         backgroundColor: bg,
         opacity,
-        borderWidth: isSelected ? 2 : 1,
-        boxShadow: isSelected ? '0 0 0 1px var(--gold-mid)' : undefined,
-        color: lightFace ? 'var(--ink)' : 'var(--cream)',
+        boxShadow: isSelected ? 'var(--glow-gold)' : undefined,
+        color: 'var(--text-primary)',
       }}
     >
-      <div className="mb-1.5 flex items-start justify-between gap-1">
-        <span className={`game-card-badge ${badgeClass}`} style={hidden ? { opacity: 0.5 } : undefined}>
-          {hidden ? '—' : shortTypeLabel(cardType)}
-        </span>
-      </div>
-      <p
-        className="mb-1 min-h-[2.25rem] flex-1 text-left text-xs leading-tight sm:text-sm"
-        style={{
-          fontFamily: 'var(--font-playfair)',
-          fontStyle: 'italic',
-          color: lightFace ? 'var(--ink)' : 'var(--cream)',
-        }}
-      >
-        {hidden ? 'Hidden' : name}
-      </p>
-      <div className="mt-auto flex items-end justify-between border-t pt-1.5" style={{ borderColor: 'var(--rule)' }}>
-        <span
-          className="text-[10px] uppercase tracking-wider"
-          style={{ color: lightFace ? 'var(--muted)' : 'var(--cream)' }}
+      <div
+        className="absolute left-2 right-2 top-0 h-0.5 rounded-sm"
+        style={{ background: accent }}
+        aria-hidden
+      />
+
+      <div className="mt-1 flex min-w-0 flex-col gap-0.5">
+        <div className="flex items-center justify-between gap-1">
+          <span className={`game-card-badge shrink-0 ${badgeClass}`} style={hidden ? { opacity: 0.4 } : undefined}>
+            {hidden ? '—' : shortTypeLabel(cardType)}
+          </span>
+          <div
+            className="min-w-0 flex-1 truncate text-[10px] font-bold uppercase leading-none tracking-wide sm:text-xs"
+            style={{ fontFamily: 'var(--font-display)' }}
+          >
+            {hidden ? '•••' : name}
+          </div>
+          {isRogue && !hidden ? (
+            <span className="shrink-0 text-[7px] font-bold tracking-widest" style={{ color: 'var(--rarity-rogue)' }}>
+              ROGUE
+            </span>
+          ) : null}
+          {showRareChip ? (
+            <span className="shrink-0 text-[7px] font-bold tracking-widest" style={{ color: 'var(--rarity-rare)' }}>
+              RARE
+            </span>
+          ) : null}
+        </div>
+        <div
+          className="text-[8px] uppercase tracking-wider sm:text-[10px]"
+          style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}
         >
-          Pwr
-        </span>
-        <span
-          className="text-lg font-semibold tabular-nums sm:text-xl"
-          style={{
-            fontFamily: 'var(--font-playfair-sc)',
-            color: lightFace ? 'var(--ink)' : 'var(--gold-mid)',
-          }}
+          {hidden ? '—' : subtype}
+        </div>
+      </div>
+
+      <div
+        className="flex min-h-[2.25rem] flex-1 items-center justify-center rounded sm:min-h-[3.5rem]"
+        style={{ background: 'var(--bg-deep)', borderRadius: 'var(--radius-sm)' }}
+      >
+        {hidden ? (
+          <span className="text-xs text-[var(--text-muted)]">?</span>
+        ) : isRogue ? (
+          <RouteDiagramRogue cardName={name} compact />
+        ) : role === 'offense' ? (
+          <RouteDiagramOffense cardType={cardType} compact />
+        ) : (
+          <RouteDiagramDefense cardType={cardType} compact />
+        )}
+      </div>
+
+      <div className="mt-0.5 flex items-end justify-between">
+        <div
+          className="text-xl font-black tabular-nums leading-none sm:text-3xl"
+          style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
         >
           {powerDisplay}
-        </span>
+        </div>
+        <div className="text-right">
+          <div
+            className="text-[7px] uppercase tracking-wider sm:text-[9px]"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Base
+          </div>
+          <div
+            className="text-[9px] font-semibold tabular-nums sm:text-xs"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--text-secondary)' }}
+          >
+            {baseDisplay}
+          </div>
+        </div>
       </div>
     </div>
   );

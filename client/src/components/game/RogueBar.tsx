@@ -38,9 +38,9 @@ function RogueBar(): JSX.Element {
       <div
         className="flex h-[var(--rogue-bar-height)] shrink-0 items-center justify-between gap-3 border-b px-[var(--shell-pad-x)]"
         style={{
-          backgroundColor: 'var(--cream)',
-          borderColor: 'var(--rule)',
-          color: 'var(--ink)',
+          backgroundColor: 'var(--bg-deep)',
+          borderColor: 'var(--bg-border)',
+          color: 'var(--text-primary)',
         }}
       >
         <Link
@@ -57,10 +57,10 @@ function RogueBar(): JSX.Element {
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded border text-xs font-semibold sm:h-10 sm:w-10 sm:text-sm"
                 style={{
                   fontFamily: 'var(--font-playfair-sc)',
-                  borderColor: active ? 'var(--gold)' : 'var(--rule)',
-                  backgroundColor: past ? 'var(--green-turf)' : active ? 'var(--white)' : 'transparent',
-                  color: 'var(--ink)',
-                  boxShadow: active ? '0 0 0 1px var(--gold-mid)' : undefined,
+                  borderColor: active ? 'var(--gold)' : 'var(--bg-border)',
+                  backgroundColor: past ? 'var(--green-turf)' : active ? 'var(--surface-panel)' : 'transparent',
+                  color: 'var(--text-primary)',
+                  boxShadow: active ? 'var(--glow-gold)' : undefined,
                 }}
               >
                 {n}
@@ -78,9 +78,9 @@ function RogueBar(): JSX.Element {
           type="button"
           className="flex shrink-0 items-center gap-2 rounded border px-2.5 py-1 text-sm tabular-nums sm:px-3"
           style={{
-            borderColor: 'var(--rule)',
-            backgroundColor: 'var(--white)',
-            color: 'var(--ink)',
+            borderColor: 'var(--bg-border)',
+            backgroundColor: 'var(--surface-panel)',
+            color: 'var(--text-primary)',
             fontFamily: 'var(--font-playfair-sc)',
           }}
           onClick={() => session && deck && setDeckOpen(true)}

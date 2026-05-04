@@ -7,7 +7,7 @@ export interface CoinTossModalProps {
 }
 
 const btn =
-  'min-h-12 w-full max-w-xs rounded border-2 px-4 py-3 text-base font-semibold transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--cream)] disabled:cursor-wait disabled:opacity-50 sm:text-lg';
+  'min-h-12 w-full max-w-xs rounded border-2 px-4 py-3 text-base font-semibold transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--bg-deep)] disabled:cursor-wait disabled:opacity-50 sm:text-lg';
 
 /**
  * Post-session-start coin toss: user chooses to take offense or defense (see server COIN_TOSS_PICK).
@@ -41,7 +41,7 @@ function CoinTossModal({ sessionId, onPick, className = '' }: CoinTossModalProps
         className="w-full max-w-md rounded border p-6 shadow-xl sm:p-8"
         style={{
           borderColor: 'var(--rule)',
-          backgroundColor: 'var(--white)',
+          backgroundColor: 'var(--surface-panel)',
         }}
       >
         <h2

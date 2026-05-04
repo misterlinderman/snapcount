@@ -17,10 +17,10 @@ function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-50 border-b"
+      className="sticky top-0 z-50 border-b backdrop-blur-sm"
       style={{
-        backgroundColor: 'var(--white)',
-        borderColor: 'var(--rule)',
+        backgroundColor: 'rgba(20, 26, 34, 0.92)',
+        borderColor: 'var(--bg-border)',
       }}
     >
       <div
@@ -29,8 +29,8 @@ function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center space-x-2">
           <span
-            className="text-sm font-semibold tracking-wide sm:text-base"
-            style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--ink)' }}
+            className="text-sm font-bold uppercase tracking-[0.12em] sm:text-base"
+            style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
           >
             Snapcount
           </span>
@@ -44,8 +44,8 @@ function Navbar() {
               isActive('/') ? '' : 'opacity-80 hover:opacity-100'
             }`}
             style={{
-              fontFamily: 'var(--font-serif)',
-              color: isActive('/') ? 'var(--blue)' : 'var(--ink)',
+              fontFamily: 'var(--font-body)',
+              color: isActive('/') ? 'var(--gold-bright)' : 'var(--text-secondary)',
             }}
           >
             Home
@@ -58,8 +58,8 @@ function Navbar() {
                   isActive('/season') ? '' : 'opacity-80 hover:opacity-100'
                 }`}
                 style={{
-                  fontFamily: 'var(--font-serif)',
-                  color: isActive('/season') ? 'var(--blue)' : 'var(--ink)',
+                  fontFamily: 'var(--font-body)',
+                  color: isActive('/season') ? 'var(--gold-bright)' : 'var(--text-secondary)',
                 }}
               >
                 Season
@@ -70,8 +70,8 @@ function Navbar() {
                   isActive('/how-to-play') ? '' : 'opacity-80 hover:opacity-100'
                 }`}
                 style={{
-                  fontFamily: 'var(--font-serif)',
-                  color: isActive('/how-to-play') ? 'var(--blue)' : 'var(--ink)',
+                  fontFamily: 'var(--font-body)',
+                  color: isActive('/how-to-play') ? 'var(--gold-bright)' : 'var(--text-secondary)',
                 }}
               >
                 How to play
@@ -82,8 +82,8 @@ function Navbar() {
                   isActive('/dashboard') ? '' : 'opacity-80 hover:opacity-100'
                 }`}
                 style={{
-                  fontFamily: 'var(--font-serif)',
-                  color: isActive('/dashboard') ? 'var(--blue)' : 'var(--ink)',
+                  fontFamily: 'var(--font-body)',
+                  color: isActive('/dashboard') ? 'var(--gold-bright)' : 'var(--text-secondary)',
                 }}
               >
                 Dashboard
@@ -94,8 +94,8 @@ function Navbar() {
                   isActive('/profile') ? '' : 'opacity-80 hover:opacity-100'
                 }`}
                 style={{
-                  fontFamily: 'var(--font-serif)',
-                  color: isActive('/profile') ? 'var(--blue)' : 'var(--ink)',
+                  fontFamily: 'var(--font-body)',
+                  color: isActive('/profile') ? 'var(--gold-bright)' : 'var(--text-secondary)',
                 }}
               >
                 Profile
@@ -107,8 +107,10 @@ function Navbar() {
                     location.pathname.startsWith('/admin') ? '' : 'opacity-80 hover:opacity-100'
                   }`}
                   style={{
-                    fontFamily: 'var(--font-serif)',
-                    color: location.pathname.startsWith('/admin') ? 'var(--gold)' : 'var(--ink)',
+                    fontFamily: 'var(--font-body)',
+                    color: location.pathname.startsWith('/admin')
+                      ? 'var(--rogue-purple-bright)'
+                      : 'var(--text-secondary)',
                   }}
                 >
                   Admin
@@ -143,10 +145,10 @@ function Navbar() {
                 onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
                 className="rounded border px-3 py-1.5 text-sm transition-opacity hover:opacity-90"
                 style={{
-                  fontFamily: 'var(--font-serif)',
-                  borderColor: 'var(--rule)',
-                  color: 'var(--ink)',
-                  backgroundColor: 'var(--cream)',
+                  fontFamily: 'var(--font-body)',
+                  borderColor: 'var(--bg-border)',
+                  color: 'var(--text-primary)',
+                  backgroundColor: 'var(--bg-raised)',
                 }}
               >
                 Log Out
@@ -158,8 +160,10 @@ function Navbar() {
               onClick={() => loginWithRedirect()}
               className="rounded px-3 py-1.5 text-sm text-white transition-opacity hover:opacity-90"
               style={{
-                fontFamily: 'var(--font-serif)',
-                backgroundColor: 'var(--blue)',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                backgroundColor: 'var(--blitz-red)',
               }}
             >
               Log In

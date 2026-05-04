@@ -86,7 +86,7 @@ function Home(): JSX.Element {
               style={{
                 fontFamily: 'var(--font-serif)',
                 borderColor: 'var(--rule)',
-                backgroundColor: 'var(--white)',
+                backgroundColor: 'var(--surface-panel)',
                 color: 'var(--ink)',
               }}
             >
@@ -112,7 +112,7 @@ function Home(): JSX.Element {
                   <label
                     key={d._id}
                     className="flex min-h-12 cursor-pointer items-center gap-3 rounded border px-3 py-2"
-                    style={{ borderColor: pickedDeck === d._id ? 'var(--gold)' : 'var(--rule)', backgroundColor: 'var(--white)' }}
+                    style={{ borderColor: pickedDeck === d._id ? 'var(--gold)' : 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
                   >
                     <input
                       type="radio"

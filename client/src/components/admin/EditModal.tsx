@@ -38,7 +38,7 @@ function EditModal({
     >
       <div
         className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded border p-6 shadow-lg"
-        style={{ backgroundColor: 'var(--white)', borderColor: 'var(--rule)' }}
+        style={{ backgroundColor: 'var(--surface-panel)', borderColor: 'var(--rule)' }}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

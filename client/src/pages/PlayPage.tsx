@@ -97,6 +97,8 @@ function PlayField({ session }: PlayFieldProps): JSX.Element {
         cardType: c.type,
         name: c.name,
         power: p,
+        basePower: c.basePower,
+        rarity: c.rarity,
         variant: display.hand.selectedCardId === c._id ? 'selected' : 'selectable',
       });
     }
@@ -240,12 +242,25 @@ function PlayField({ session }: PlayFieldProps): JSX.Element {
 
   const role = userHandSide(display);
   const pmVisual = display.hand.playmaker
-    ? {
-        name: content.playmakers.get(display.hand.playmaker)?.name ?? 'Playmaker',
-        affinityLabel: affinityLine(display.hand.playmaker, content),
-        variant: display.hand.selectedPM === display.hand.playmaker ? ('selected' as const) : ('selectable' as const),
-      }
-    : { name: '—', affinityLabel: '—', variant: 'selectable' as const };
+    ? (() => {
+        const pm = content.playmakers.get(display.hand.playmaker);
+        return {
+          name: pm?.name ?? 'Playmaker',
+          position: pm?.position ?? 'QB',
+          side: pm?.side ?? 'offense',
+          multiplier: pm?.baseBoost ?? 1,
+          affinityLabel: affinityLine(display.hand.playmaker, content),
+          variant: display.hand.selectedPM === display.hand.playmaker ? ('selected' as const) : ('selectable' as const),
+        };
+      })()
+    : {
+        name: '—',
+        position: 'QB',
+        side: 'offense' as const,
+        multiplier: 1,
+        affinityLabel: '—',
+        variant: 'selectable' as const,
+      };
 
   const showResolution = Boolean(resolution);
 
@@ -272,9 +287,9 @@ function PlayField({ session }: PlayFieldProps): JSX.Element {
       {canEndMatch ? (
         <div
           className="space-y-3 rounded border px-4 py-4 text-center"
-          style={{ borderColor: 'var(--gold)', backgroundColor: 'var(--cream)' }}
+          style={{ borderColor: 'var(--gold-dim)', backgroundColor: 'var(--surface-panel)' }}
         >
-          <p className="text-lg" style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--ink)' }}>
+          <p className="text-lg" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
             Final — {display.gameWinner === display.playerSide ? 'You win' : 'You lose'}
           </p>
           <button
@@ -307,12 +322,12 @@ function PlayField({ session }: PlayFieldProps): JSX.Element {
         resolution.playKind === 'field_goal' && resolution.fieldGoal ? (
           <div
             className="space-y-3 rounded border px-4 py-4 text-center"
-            style={{ borderColor: 'var(--gold-mid)', backgroundColor: 'var(--cream)' }}
+            style={{ borderColor: 'var(--gold-mid)', backgroundColor: 'var(--surface-panel)' }}
           >
-            <p className="text-lg" style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--ink)' }}>
+            <p className="text-lg" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
               Field goal — {resolution.fieldGoal.made ? 'Good (+3)' : 'No good'}
             </p>
-            <p className="text-sm" style={{ fontFamily: 'var(--font-serif)', color: 'var(--ink2)' }}>
+            <p className="text-sm" style={{ fontFamily: 'var(--font-body)', color: 'var(--text-secondary)' }}>
               {resolution.fieldGoal.made
                 ? `${resolution.fieldGoal.distanceYards}-yard try`
                 : `Missed from ${resolution.fieldGoal.distanceYards}`}
@@ -344,6 +359,7 @@ function PlayField({ session }: PlayFieldProps): JSX.Element {
       {!showResolution ? (
         <Hand
           cards={handSlots}
+          handRole={role}
           playmaker={pmVisual}
           onCardSelect={(id) => ctx.dispatch({ type: 'SELECT_CARD', cardId: id })}
           onPlaymakerClick={() =>

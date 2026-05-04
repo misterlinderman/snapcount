@@ -8,8 +8,13 @@ function Profile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Profile</h1>
+    <div className="mx-auto max-w-2xl px-1">
+      <h1
+        className="mb-8 text-3xl font-bold uppercase tracking-[0.04em]"
+        style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}
+      >
+        Profile
+      </h1>
 
       <div className="card">
         <div className="flex items-start gap-6">
@@ -17,18 +22,28 @@ function Profile() {
             <img
               src={user.picture}
               alt={user.name || 'User'}
-              className="w-24 h-24 rounded-full"
+              className="h-24 w-24 rounded-full"
+              style={{ boxShadow: '0 0 0 2px var(--bg-border)' }}
             />
           )}
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold text-gray-900 mb-1">
+            <h2 className="mb-1 text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>
               {user.name}
             </h2>
-            <p className="text-gray-600 mb-4">{user.email}</p>
+            <p className="mb-4" style={{ color: 'var(--text-secondary)' }}>
+              {user.email}
+            </p>
 
             {user.email_verified && (
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+              <span
+                className="inline-flex items-center rounded-full px-3 py-1 text-sm font-medium"
+                style={{
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  color: 'var(--success-green)',
+                  border: '1px solid rgba(34, 197, 94, 0.35)',
+                }}
+              >
+                <svg className="mr-1 h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
                     d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
@@ -41,36 +56,41 @@ function Profile() {
           </div>
         </div>
 
-        <hr className="my-6" />
+        <hr className="my-6" style={{ borderColor: 'var(--bg-border)' }} />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Account Details</h3>
+          <h3 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+            Account Details
+          </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-gray-500 mb-1">
+              <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                 User ID
               </label>
-              <p className="text-gray-900 font-mono text-sm bg-gray-50 px-3 py-2 rounded-lg break-all">
+              <p
+                className="break-all rounded-lg px-3 py-2 font-mono text-sm"
+                style={{ backgroundColor: 'var(--bg-raised)', color: 'var(--text-primary)', border: '1px solid var(--bg-border)' }}
+              >
                 {user.sub}
               </p>
             </div>
 
             {user.nickname && (
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
+                <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                   Nickname
                 </label>
-                <p className="text-gray-900">{user.nickname}</p>
+                <p style={{ color: 'var(--text-primary)' }}>{user.nickname}</p>
               </div>
             )}
 
             {user.updated_at && (
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
+                <label className="mb-1 block text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                   Last Updated
                 </label>
-                <p className="text-gray-900">
+                <p style={{ color: 'var(--text-primary)' }}>
                   {new Date(user.updated_at).toLocaleDateString('en-US', {
                     year: 'numeric',
                     month: 'long',
@@ -84,14 +104,23 @@ function Profile() {
           </div>
         </div>
 
-        <hr className="my-6" />
+        <hr className="my-6" style={{ borderColor: 'var(--bg-border)' }} />
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">Raw User Data</h3>
-          <p className="text-sm text-gray-500">
+          <h3 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+            Raw User Data
+          </h3>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             This is the full user object from Auth0. Useful for debugging.
           </p>
-          <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
+          <pre
+            className="overflow-x-auto rounded-lg p-4 text-sm"
+            style={{
+              backgroundColor: 'var(--bg-void)',
+              color: 'var(--gold-bright)',
+              border: '1px solid var(--bg-border)',
+            }}
+          >
             {JSON.stringify(user, null, 2)}
           </pre>
         </div>

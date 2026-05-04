@@ -73,7 +73,7 @@ function DeckOverviewModal({ deck, content, onClose, title = 'Deck', inline = fa
   const inner = (
     <div
       className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded border p-5 shadow-xl sm:p-7"
-      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
     >
       <div className="mb-4 flex items-start justify-between gap-4">
         <h2 id="deck-overview-title" className="text-xl" style={{ fontFamily: 'var(--font-playfair-sc)', color: 'var(--ink)' }}>

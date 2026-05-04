@@ -1,70 +1,197 @@
-/**
- * Gridiron Rogue / newspaper sports-desk palette.
- * POC `gridiron-rogue-v2.html` is not in this repo; names and roles match AGENTS.md + .cursorrules.
- */
+/* ============================================================
+   Snapcount — Alpha design system (docs/game/alpha design system)
+   Legacy token names (--ink, --cream, …) map here for gradual migration.
+   ============================================================ */
+
 :root {
-  /* Neutrals — masthead, paper, type */
-  --ink: #14120f;
-  --ink2: #252220;
-  --cream: #f2ece3;
-  --white: #fffcf7;
-  --muted: #6e6860;
-  --rule: #c8c2b6;
+  /* ── BRAND ───────────────────────────────────────────────── */
 
-  /* Team ink (UI accents; Blitz FC / Storm SC) */
-  --red: #8b2332;
-  --red-mid: #a53b4a;
-  --blue: #1a3a5f;
-  --blue-mid: #2d5580;
+  --blitz-red: #d4222a;
+  --blitz-red-bright: #ff3340;
+  --blitz-red-dim: #8b1219;
+  --blitz-red-glow: rgba(212, 34, 42, 0.35);
+  --blitz-red-subtle: rgba(212, 34, 42, 0.12);
 
-  /* Field */
-  --green-field: #1a3d2e;
-  --green-turf: #244a38;
+  --storm-blue: #1565c0;
+  --storm-blue-bright: #2979ff;
+  --storm-blue-dim: #0d3d7a;
+  --storm-blue-glow: rgba(21, 101, 192, 0.35);
+  --storm-blue-subtle: rgba(21, 101, 192, 0.12);
 
-  /* Highlights — playmakers, DP, badges */
-  --gold: #b8942f;
-  --gold-mid: #d4b03d;
+  --gold: #e8a820;
+  --gold-bright: #ffd045;
+  --gold-dim: #9a6a0a;
+  --gold-glow: rgba(232, 168, 32, 0.4);
+  --gold-subtle: rgba(232, 168, 32, 0.15);
 
-  /* Type stacks (pair with fonts.css) */
-  --font-playfair-sc: 'Playfair Display SC', 'Times New Roman', serif;
-  --font-playfair: 'Playfair Display', Georgia, serif;
-  --font-serif: 'Source Serif 4', 'Georgia', serif;
+  --field-green: #1a4a1a;
+  --field-green-mid: #276127;
+  --field-green-line: #3d8c3d;
+  --field-green-bright: #52c852;
+  --success-green: #22c55e;
 
-  /* Layout — typical single-column POC width */
+  --rogue-purple: #7c3aed;
+  --rogue-purple-bright: #a855f7;
+  --rogue-purple-glow: rgba(124, 58, 237, 0.35);
+  --rogue-purple-subtle: rgba(124, 58, 237, 0.15);
+
+  /* ── NEUTRALS ────────────────────────────────────────────── */
+
+  --bg-void: #080a0c;
+  --bg-deep: #0d1117;
+  --bg-surface: #141a22;
+  --bg-raised: #1c2533;
+  --bg-overlay: #243040;
+  --bg-border: #2e3a4a;
+  --bg-subtle: rgba(255, 255, 255, 0.04);
+
+  --text-primary: #f0f4f8;
+  --text-secondary: #8ca0b4;
+  --text-muted: #4a5a6a;
+  --text-inverse: #0d1117;
+
+  --rarity-common: #6b7c8e;
+  --rarity-uncommon: #22c55e;
+  --rarity-rare: #e8a820;
+  --rarity-rogue: #a855f7;
+
+  --card-offense: var(--blitz-red);
+  --card-defense: var(--storm-blue);
+  --card-rogue: var(--rogue-purple);
+  --card-selected: var(--gold);
+
+  /* Typography */
+  --font-display: 'Barlow Condensed', 'Oswald', system-ui, sans-serif;
+  --font-body: 'Barlow', 'DM Sans', system-ui, sans-serif;
+  --font-mono: ui-monospace, 'Roboto Mono', monospace;
+
+  --text-xs: 10px;
+  --text-sm: 12px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+  --text-4xl: 48px;
+  --text-hero: 72px;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.8);
+
+  --glow-red: 0 0 16px var(--blitz-red-glow), 0 0 32px var(--blitz-red-glow);
+  --glow-blue: 0 0 16px var(--storm-blue-glow), 0 0 32px var(--storm-blue-glow);
+  --glow-gold: 0 0 16px var(--gold-glow), 0 0 48px var(--gold-glow);
+  --glow-purple: 0 0 16px var(--rogue-purple-glow), 0 0 32px var(--rogue-purple-glow);
+
+  --ease-snap: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  --dur-fast: 100ms;
+  --dur-base: 200ms;
+  --dur-slow: 350ms;
+  --dur-reveal: 500ms;
+
+  --field-bg: #0f2a0f;
+  --field-stripe-even: rgba(255, 255, 255, 0.03);
+  --field-stripe-odd: rgba(255, 255, 255, 0.01);
+  --field-line: rgba(255, 255, 255, 0.15);
+  --field-end-red: rgba(212, 34, 42, 0.25);
+  --field-end-blue: rgba(21, 101, 192, 0.25);
+  --yard-marker: rgba(255, 255, 255, 0.5);
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-sticky: 100;
+  --z-overlay: 500;
+  --z-modal: 1000;
+  --z-toast: 2000;
+
+  /* App shell */
   --shell-max-width: 56rem;
   --shell-pad-x: 1rem;
   --shell-pad-y: 1.25rem;
   --masthead-height: 3.25rem;
   --rogue-bar-height: 3rem;
 
-  /* Card-type badge chips (newspaper ink + tint) */
-  --badge-fg: var(--ink);
-  --badge-run-in-bg: #e8dfd0;
-  --badge-run-out-bg: #e0ddd8;
-  --badge-pass-s-bg: #dbe5ec;
-  --badge-pass-m-bg: #d5dcea;
-  --badge-pass-d-bg: #cfd6e8;
-  --badge-option-bg: #e2deec;
-  --badge-rogue-bg: #f0e6d8;
-  --badge-run-d-bg: #dde6df;
-  --badge-zone-bg: #d8e2e0;
-  --badge-man-bg: #ddd8e4;
-  --badge-blitz-bg: #e8d8dc;
-  --badge-prevent-bg: #e5e2dc;
+  /** Raised panels, modals, cards (prefer over raw --white for backgrounds). */
+  --surface-panel: var(--bg-surface);
+
+  /* ── Legacy aliases (newspaper POC names → alpha) ─────────── */
+
+  --cream: var(--bg-deep);
+  --ink: var(--text-primary);
+  --ink2: var(--text-secondary);
+  --muted: var(--text-secondary);
+  --rule: var(--bg-border);
+  --red: var(--blitz-red);
+  --red-mid: var(--blitz-red-bright);
+  --blue: var(--storm-blue);
+  --blue-mid: var(--storm-blue-bright);
+  --green-field: var(--field-green);
+  --green-turf: var(--field-green-mid);
+  --gold-mid: var(--gold-bright);
+
+  --font-playfair-sc: var(--font-display);
+  --font-playfair: var(--font-display);
+  --font-serif: var(--font-body);
+
+  /** Literal white — primary button labels, on-brand text only */
+  --white: #ffffff;
+
+  /* Card-type chips — dark-field tints */
+  --badge-fg: var(--text-primary);
+  --badge-run-in-bg: rgba(212, 34, 42, 0.12);
+  --badge-run-out-bg: rgba(180, 180, 190, 0.08);
+  --badge-pass-s-bg: rgba(21, 101, 192, 0.14);
+  --badge-pass-m-bg: rgba(21, 101, 192, 0.1);
+  --badge-pass-d-bg: rgba(21, 101, 192, 0.18);
+  --badge-option-bg: rgba(124, 58, 237, 0.12);
+  --badge-rogue-bg: rgba(168, 85, 247, 0.14);
+  --badge-run-d-bg: rgba(34, 197, 94, 0.1);
+  --badge-zone-bg: rgba(41, 121, 255, 0.1);
+  --badge-man-bg: rgba(139, 92, 246, 0.1);
+  --badge-blitz-bg: rgba(255, 51, 64, 0.12);
+  --badge-prevent-bg: rgba(140, 160, 180, 0.08);
 }
 
-/* Card family badge — pair with .badge-<type> for background */
 .game-card-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 2.25rem;
   padding: 0.125rem 0.375rem;
-  border-radius: 2px;
-  border: 1px solid var(--rule);
-  font-family: var(--font-serif);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-border);
+  font-family: var(--font-body);
   font-size: 0.625rem;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   letter-spacing: 0.08em;
   line-height: 1.2;
   text-transform: uppercase;
@@ -91,7 +218,7 @@
 }
 .badge-rogue {
   background-color: var(--badge-rogue-bg);
-  border-color: var(--gold-mid);
+  border-color: var(--rogue-purple);
 }
 .badge-run-d {
   background-color: var(--badge-run-d-bg);
@@ -110,6 +237,6 @@
 }
 
 .badge-unknown {
-  background-color: var(--cream);
-  color: var(--muted);
+  background-color: var(--bg-raised);
+  color: var(--text-muted);
 }

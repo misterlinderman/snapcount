@@ -77,32 +77,43 @@ function Dashboard() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="mx-auto max-w-4xl px-1">
       {/* Welcome Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <h1
+          className="mb-2 text-3xl font-bold font-display uppercase tracking-[0.04em]"
+          style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
+        >
           Welcome back, {user?.given_name || user?.name || 'User'}!
         </h1>
-        <p className="text-gray-600">
+        <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>
           Manage your items and track your progress from your personal dashboard.
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="card">
-          <p className="text-sm text-gray-600 mb-1">Total Items</p>
-          <p className="text-3xl font-bold text-gray-900">{items.length}</p>
+          <p className="mb-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Total Items
+          </p>
+          <p className="text-3xl font-bold tabular-nums" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+            {items.length}
+          </p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600 mb-1">Completed</p>
-          <p className="text-3xl font-bold text-green-600">
+          <p className="mb-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Completed
+          </p>
+          <p className="text-3xl font-bold tabular-nums" style={{ color: 'var(--success-green)' }}>
             {items.filter((i) => i.completed).length}
           </p>
         </div>
         <div className="card">
-          <p className="text-sm text-gray-600 mb-1">Pending</p>
-          <p className="text-3xl font-bold text-orange-600">
+          <p className="mb-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Pending
+          </p>
+          <p className="text-3xl font-bold tabular-nums" style={{ color: 'var(--gold)' }}>
             {items.filter((i) => !i.completed).length}
           </p>
         </div>
@@ -110,10 +121,12 @@ function Dashboard() {
 
       {/* Add New Item Form */}
       <div className="card mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New Item</h2>
+        <h2 className="mb-4 text-lg font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+          Add New Item
+        </h2>
         <form onSubmit={handleAddItem} className="space-y-4">
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="title" className="mb-1 block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
               Title
             </label>
             <input
@@ -127,7 +140,7 @@ function Dashboard() {
             />
           </div>
           <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="description" className="mb-1 block text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
               Description (optional)
             </label>
             <textarea
@@ -146,7 +159,10 @@ function Dashboard() {
 
       {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+        <div
+          className="mb-6 rounded-lg border px-4 py-3"
+          style={{ borderColor: 'var(--blitz-red)', backgroundColor: 'var(--blitz-red-subtle)', color: 'var(--blitz-red-bright)' }}
+        >
           {error}
           <button onClick={fetchItems} className="ml-4 underline">
             Retry
@@ -156,27 +172,37 @@ function Dashboard() {
 
       {/* Items List */}
       <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Items</h2>
+        <h2 className="mb-4 text-lg font-semibold" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+          Your Items
+        </h2>
         {loading ? (
-          <div className="text-center py-8">
-            <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-gray-600">Loading items...</p>
+          <div className="py-8 text-center">
+            <div
+              className="mx-auto mb-2 h-8 w-8 animate-spin rounded-full border-4 border-solid"
+              style={{ borderColor: 'var(--bg-border)', borderTopColor: 'var(--gold)' }}
+            />
+            <p style={{ color: 'var(--text-secondary)' }}>Loading items…</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="py-8 text-center" style={{ color: 'var(--text-muted)' }}>
             <p>No items yet. Add your first item above!</p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y" style={{ borderColor: 'var(--bg-border)' }}>
             {items.map((item) => (
-              <li key={item._id} className="py-4 flex items-start gap-4">
+              <li key={item._id} className="flex items-start gap-4 py-4">
                 <button
                   onClick={() => handleToggleComplete(item)}
-                  className={`mt-1 w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+                  className={`mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border-2 transition-colors ${
                     item.completed
-                      ? 'bg-green-500 border-green-500 text-white'
-                      : 'border-gray-300 hover:border-primary-500'
+                      ? 'border-transparent text-white'
+                      : ''
                   }`}
+                  style={
+                    item.completed
+                      ? { backgroundColor: 'var(--success-green)', borderColor: 'var(--success-green)' }
+                      : { borderColor: 'var(--bg-border)' }
+                  }
                 >
                   {item.completed && (
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,24 +210,31 @@ function Dashboard() {
                     </svg>
                   )}
                 </button>
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p
-                    className={`font-medium ${
-                      item.completed ? 'text-gray-400 line-through' : 'text-gray-900'
-                    }`}
+                    className="font-medium"
+                    style={{
+                      color: item.completed ? 'var(--text-muted)' : 'var(--text-primary)',
+                      textDecoration: item.completed ? 'line-through' : undefined,
+                    }}
                   >
                     {item.title}
                   </p>
                   {item.description && (
-                    <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                    <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                      {item.description}
+                    </p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
                     {new Date(item.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => handleDeleteItem(item._id)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
+                  className="transition-colors hover:[color:var(--blitz-red-bright)]"
+                  style={{ color: 'var(--text-muted)' }}
+                  aria-label="Delete item"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path

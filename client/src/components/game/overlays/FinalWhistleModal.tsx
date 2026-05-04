@@ -30,7 +30,7 @@ function FinalWhistleModal({ data, playerSide, onGoLocker, ctaLabel = 'Go to Loc
     >
       <div
         className="w-full max-w-md rounded border p-6 shadow-xl sm:p-8"
-        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
       >
         <h2
           id="final-whistle-title"
@@ -74,7 +74,7 @@ function FinalWhistleModal({ data, playerSide, onGoLocker, ctaLabel = 'Go to Loc
         </p>
         <button
           type="button"
-          className="min-h-12 w-full rounded border-2 px-4 py-3 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--cream)]"
+          className="min-h-12 w-full rounded border-2 px-4 py-3 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--bg-deep)]"
           style={{
             fontFamily: 'var(--font-playfair-sc)',
             borderColor: 'var(--blue)',

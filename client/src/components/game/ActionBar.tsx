@@ -1,3 +1,5 @@
+import SCButton from '@/components/ui/SCButton';
+
 export type ActionBarMode = 'snap' | 'next-play';
 
 export interface ActionBarProps {
@@ -19,11 +21,10 @@ export interface ActionBarProps {
   className?: string;
 }
 
-const btnBase =
-  'min-h-12 min-w-[44px] flex-1 rounded border px-4 py-3 text-sm font-semibold transition-opacity sm:text-base focus:outline-none focus:ring-2 focus:ring-[var(--gold)] focus:ring-offset-2 focus:ring-offset-[var(--cream)] disabled:cursor-not-allowed disabled:opacity-45';
+const toolbarBtn = 'min-h-12 min-w-[44px] flex-1 sm:min-h-[3rem]';
 
 /**
- * Sticky bottom bar: Redraw + Snap, or Redraw (disabled) + Next Play.
+ * Sticky bottom bar: Redraw + Snap, or Redraw (disabled) + Next Play (alpha SCButton).
  */
 function ActionBar({
   mode,
@@ -38,15 +39,15 @@ function ActionBar({
   snapDisabled = false,
   nextPlayDisabled = false,
   className = '',
-}: ActionBarProps) {
+}: ActionBarProps): JSX.Element {
   const redrawDisabled = redrawDisabledProp ?? mode === 'next-play';
 
   return (
     <div
       className={`sticky bottom-0 z-40 border-t ${className}`}
       style={{
-        borderColor: 'var(--rule)',
-        backgroundColor: 'var(--white)',
+        borderColor: 'var(--bg-border)',
+        backgroundColor: 'var(--surface-panel)',
         paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
       }}
     >
@@ -55,68 +56,42 @@ function ActionBar({
         role="toolbar"
         aria-label="Play actions"
       >
-        <button
-          type="button"
-          className={btnBase}
-          style={{
-            fontFamily: 'var(--font-serif)',
-            borderColor: 'var(--rule)',
-            color: 'var(--ink)',
-            backgroundColor: redrawDisabled ? 'var(--cream)' : 'var(--white)',
-          }}
+        <SCButton
+          variant={redrawDisabled ? 'secondary' : 'ghost'}
+          size="lg"
           disabled={redrawDisabled}
           onClick={onRedraw}
+          className={toolbarBtn}
         >
           {redrawLabel}
-        </button>
+        </SCButton>
 
         {mode === 'snap' && showFieldGoal ? (
-          <button
-            type="button"
-            className={btnBase}
-            style={{
-              fontFamily: 'var(--font-serif)',
-              borderColor: 'var(--rule)',
-              color: 'var(--ink)',
-              backgroundColor: fieldGoalDisabled ? 'var(--cream)' : 'var(--white)',
-            }}
+          <SCButton
+            variant="gold"
+            size="lg"
             disabled={fieldGoalDisabled}
             onClick={onFieldGoal}
+            className={toolbarBtn}
           >
             Field goal
-          </button>
+          </SCButton>
         ) : null}
 
         {mode === 'snap' ? (
-          <button
-            type="button"
-            className={btnBase}
-            style={{
-              fontFamily: 'var(--font-playfair-sc)',
-              borderColor: 'var(--blue)',
-              color: 'var(--white)',
-              backgroundColor: 'var(--blue)',
-            }}
-            disabled={snapDisabled}
-            onClick={onSnap}
-          >
+          <SCButton variant="primary" size="lg" disabled={snapDisabled} onClick={onSnap} className={toolbarBtn}>
             Snap
-          </button>
+          </SCButton>
         ) : (
-          <button
-            type="button"
-            className={btnBase}
-            style={{
-              fontFamily: 'var(--font-playfair-sc)',
-              borderColor: 'var(--green-turf)',
-              color: 'var(--white)',
-              backgroundColor: 'var(--green-field)',
-            }}
+          <SCButton
+            variant="field"
+            size="lg"
             disabled={nextPlayDisabled}
             onClick={onNextPlay}
+            className={toolbarBtn}
           >
-            Next Play
-          </button>
+            Next play
+          </SCButton>
         )}
       </div>
     </div>

@@ -52,3 +52,22 @@ export function shortTypeLabel(type: string): string {
   };
   return map[type] ?? '?';
 }
+
+/** Uppercase route / scheme line under the card title (alpha design system). */
+export function playCardSubtypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    'run-in': 'RUN IN',
+    'run-out': 'RUN OUT',
+    'pass-s': 'PASS S',
+    'pass-m': 'PASS M',
+    'pass-d': 'PASS D',
+    option: 'OPTION',
+    rogue: 'ROGUE',
+    'run-d': 'RUN D',
+    zone: 'ZONE',
+    man: 'MAN',
+    blitz: 'BLITZ',
+    prevent: 'PREVENT',
+  };
+  return map[type] ?? String(type).replace(/-/g, ' ').toUpperCase();
+}

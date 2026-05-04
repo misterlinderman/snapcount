@@ -84,7 +84,7 @@ function HowToPlayPage(): JSX.Element {
             style={{
               fontFamily: 'var(--font-serif)',
               borderColor: 'var(--rule)',
-              backgroundColor: 'var(--white)',
+              backgroundColor: 'var(--surface-panel)',
               color: 'var(--ink)',
             }}
           >
@@ -96,7 +96,7 @@ function HowToPlayPage(): JSX.Element {
       <nav
         aria-label="On this page"
         className="rounded border p-4"
-        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
       >
         <p
           className="mb-2 text-xs font-semibold uppercase tracking-wide"
@@ -400,7 +400,7 @@ function HowToPlayPage(): JSX.Element {
 
       <footer
         className="rounded border p-4 text-center text-sm"
-        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)', color: 'var(--muted)' }}
+        style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)', color: 'var(--muted)' }}
       >
         <p style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}>
           Numbers and copy follow the live design spec; balance tweaks ship through seeds and admin content without needing a

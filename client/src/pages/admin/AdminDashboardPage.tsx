@@ -19,15 +19,15 @@ const STATS_QK = ['admin', 'stats'] as const;
 const MIN_PLAYS_WINRATE = 5;
 
 function heatmapCellBg(yards: number | null): string {
-  if (yards === null || !Number.isFinite(yards)) return 'var(--cream)';
+  if (yards === null || !Number.isFinite(yards)) return 'var(--bg-surface)';
   const clamped = Math.min(14, Math.max(-10, yards));
   const t = (clamped + 10) / 24;
   if (t <= 0.5) {
     const u = t * 2;
-    return `color-mix(in srgb, var(--red) ${Math.round((1 - u) * 88)}%, var(--cream))`;
+    return `color-mix(in srgb, var(--red) ${Math.round((1 - u) * 88)}%, var(--bg-surface))`;
   }
   const u = (t - 0.5) * 2;
-  return `color-mix(in srgb, var(--cream) ${Math.round((1 - u) * 55)}%, var(--green-field))`;
+  return `color-mix(in srgb, var(--bg-surface) ${Math.round((1 - u) * 55)}%, var(--green-field))`;
 }
 
 function winRateHistogram(rows: CardWinRateRow[]) {
@@ -278,7 +278,7 @@ function Tile({ title, children }: { title: string; children: ReactNode }): JSX.
   return (
     <section
       className="rounded border p-4 shadow-sm"
-      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--white)' }}
+      style={{ borderColor: 'var(--rule)', backgroundColor: 'var(--surface-panel)' }}
     >
       <h2 className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--muted)' }}>
         {title}
